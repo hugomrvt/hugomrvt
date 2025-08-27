@@ -9,7 +9,7 @@ I'm a passionate Design Technologist who ships code and explores GenAI possibili
 - 🤖 **AI-Enhanced Design Leadership**: Scaling design teams at Michelin through GenAI workflows and intelligent tool sourcing
 - ⚡ **Generative Product Development**: Building next-gen applications that blend traditional coding with AI-powered creation
 - 🎨 **Intelligent Design Systems**: Crafting scalable experiences using AI-generated components and automated design tokens
-- 🚀 ** AI Product Building Stack**: Lovable, Bolt, v0, Emergent, Figma Make, Cursor, Trae, Github Copilot, Kiro, tools that revolutionize how we ship digital products
+- 🚀 **AI Product Building Stack**: Lovable, Bolt, v0, Emergent, Figma Make, Cursor, Trae, Github Copilot, Kiro, tools that revolutionize how we ship digital products
 
 
 
