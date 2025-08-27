@@ -1,22 +1,25 @@
 # Hugo Mourlevat
-**Chief Design Officer at [@michelin](https://github.com/michelin) & Product Builder**
+**Chief Design Officer at [@Michelin](https://github.com/michelin) & (AI) Product Builder**
 
-👋 Welcome to my GitHub profile! I'm a passionate design technologist who bridges the gap between design and development, creating meaningful digital experiences that solve real-world problems.
+> 👋🏽 Welcome to my GitHub profile! 
+I'm a passionate Design Technologist who ships code and explores GenAI possibilities, creating meaningful digital experiences that blend human-centered design with artificial intelligence to solve real-world problems.
 
-## 🚀 What I Do
+## What I Do
 
-- **Design Leadership**: Leading design strategy and teams at Michelin
-- **Product Development**: Building innovative web applications and tools
-- **Design Systems**: Creating scalable and consistent user experiences
-- **Frontend Development**: TypeScript, React, and modern web technologies
+- 🤖 **AI-Enhanced Design Leadership**: Scaling design teams at Michelin through GenAI workflows and intelligent tool sourcing
+- ⚡ **Generative Product Development**: Building next-gen applications that blend traditional coding with AI-powered creation
+- 🎨 **Intelligent Design Systems**: Crafting scalable experiences using AI-generated components and automated design tokens
+- 🚀 ** AI Product Building Stack**: Lovable, Bolt, v0, Emergent, Figma Make, Cursor, Trae, Github Copilot, Kiro, tools that revolutionize how we ship digital products
 
-## 🛠️ Recent Projects
+
+
+## Recent Projects
 
 - **[VacayGen](https://github.com/hugomrvt/vacaygen)** - AI-powered vacation message generator for professionals
 - **[MRVT TimeSpot](https://github.com/hugomrvt/mrvt-timespot)** - Modern world clock with real-time updates
-- **[Not A Robot Design](https://github.com/hugomrvt/not-a-robot-design)** - Design system and UI components
+- **[Not A Robot Design](https://github.com/hugomrvt/not-a-robot-design)** - Captcha challenge for Designer
 
-## 💻 Tech Stack
+## Tech Stack
 
 ![TypeScript](https://img.shields.io/badge/-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/-React-61DAFB?style=flat-square&logo=react&logoColor=black)
@@ -46,7 +49,7 @@
 -->
 
 ---
-
+<br>
 <div align="center">
   <i>"Design is not just what it looks like and feels like. Design is how it works." - Steve Jobs</i>
 </div>
