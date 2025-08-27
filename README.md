@@ -1,5 +1,4 @@
 # Hugo Mourlevat
-
 **Chief Design Officer at [@michelin](https://github.com/michelin) & Product Builder**
 
 👋 Welcome to my GitHub profile! I'm a passionate design technologist who bridges the gap between design and development, creating meaningful digital experiences that solve real-world problems.
@@ -34,9 +33,17 @@
 
 ## 📊 GitHub Stats
 
-<div align="center">
-  <img src="https://github-readme-stats.vercel.app/api?username=hugomrvt&show_icons=true&theme=default&hide_border=true" alt="GitHub Stats" />
-</div>
+<!-- Dark mode version -->
+![GitHub Stats](https://github-readme-stats.vercel.app/api?username=hugomrvt&show_icons=true&theme=dark)
+
+<!-- Example: Automatic light/dark theme switching -->
+<!-- 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github-readme-stats.vercel.app/api?username=hugomrvt&show_icons=true&theme=dark">
+  <source media="(prefers-color-scheme: light)" srcset="https://github-readme-stats.vercel.app/api?username=hugomrvt&show_icons=true&theme=default">
+  <img alt="GitHub Stats" src="https://github-readme-stats.vercel.app/api?username=hugomrvt&show_icons=true&theme=default">
+</picture>
+-->
 
 ---
 
