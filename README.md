@@ -19,7 +19,6 @@
 ## 📝 Latest Articles
 
 <!-- LATEST_ARTICLES_START -->
-
 <!-- LATEST_ARTICLES_END -->
 
 ## Tech Stack
