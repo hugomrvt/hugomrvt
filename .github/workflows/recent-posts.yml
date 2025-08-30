@@ -1,125 +1,191 @@
-name: Update Recent Posts
+name: Update recent posts
 on:
   schedule:
-    # Run twice daily at 6:00 AM and 6:00 PM UTC
-    - cron: '0 6,18 * * *'
+    - cron: '0 8 * * *'  # Daily at 8 AM UTC
   workflow_dispatch:
-    # Allow manual triggering
 jobs:
   update-posts:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install feedparser requests
-        
-    - name: Update README with recent posts
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        python << 'EOF'
-        import feedparser
-        import re
-        from datetime import datetime
-        import os
-        
-        def fetch_feed_entries(url):
-            """Fetch entries from RSS feed"""
-            try:
-                feed = feedparser.parse(url)
-                entries = []
-                for entry in feed.entries:
-                    # Parse publication date
-                    pub_date = None
-                    if hasattr(entry, 'published_parsed') and entry.published_parsed:
-                        pub_date = datetime(*entry.published_parsed[:6])
-                    elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
-                        pub_date = datetime(*entry.updated_parsed[:6])
-                    
-                    entries.append({
-                        'title': entry.title,
-                        'link': entry.link,
-                        'date': pub_date,
-                        'source': url
-                    })
-                return entries
-            except Exception as e:
-                print(f"Error fetching {url}: {e}")
-                return []
-        
-        # RSS feed URLs
-        FEED_URLS = [
-            'https://stories.mrvt.io/rss',
-            'https://genairadar.substack.com/feed'
-        ]
-        
-        # Fetch all entries
-        all_entries = []
-        for url in FEED_URLS:
-            entries = fetch_feed_entries(url)
-            all_entries.extend(entries)
-        
-        # Sort by date (newest first) and take top 5
-        all_entries = [e for e in all_entries if e['date']]  # Filter out entries without dates
-        all_entries.sort(key=lambda x: x['date'], reverse=True)
-        top_entries = all_entries[:5]
-        
-        # Generate markdown content
-        if top_entries:
-            content_lines = []
-            for entry in top_entries:
-                date_str = entry['date'].strftime('%B %d, %Y')
-                content_lines.append(f"- [{entry['title']}]({entry['link']}) - {date_str}")
-            new_content = '\n'.join(content_lines) + '\n'
-        else:
-            new_content = "- No recent articles available\n"
-        
-        # Update both README files
-        for readme_file in ['README.md', 'README.en.md']:
-            try:
-                with open(readme_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
-                # Replace content between markers
-                start_marker = '<!-- SECTION:RECENT_POSTS_START -->'
-                end_marker = '<!-- SECTION:RECENT_POSTS_END -->'
-                
-                pattern = f'{re.escape(start_marker)}.*?{re.escape(end_marker)}'
-                replacement = f'{start_marker}\n{new_content}{end_marker}'
-                
-                updated_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
-                
-                with open(readme_file, 'w', encoding='utf-8') as f:
-                    f.write(updated_content)
-                    
-                print(f"Updated {readme_file}")
-                
-            except FileNotFoundError:
-                print(f"File {readme_file} not found")
-            except Exception as e:
-                print(f"Error updating {readme_file}: {e}")
-        
-        EOF
-        
-    - name: Commit changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add README.md README.en.md
-        
-        # Only commit if there are changes
-        if git diff --staged --quiet; then
-          echo "No changes to commit"
-        else
-          git commit -m "Update recent posts - $(date '+%Y-%m-%d %H:%M:%S')"
-          git push
-        fi
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install feedparser pytz
+      - name: Update recent posts
+        run: |
+          cat << 'EOF' > update_posts.py
+          import feedparser
+          import json
+          import os
+          import re
+          from datetime import datetime, timezone
+          
+          # Configuration
+          CACHE_FILE = ".utils/.posts_cache.json"
+          START_MARKER = "<!-- BLOG-POST-LIST:START -->"
+          END_MARKER = "<!-- BLOG-POST-LIST:END -->"
+          
+          # RSS feed URLs
+          FEEDS = [
+              {
+                  'url': 'https://hugomrvt.com/feed.xml',
+                  'platform': 'Blog',
+                  'logo': '📝'
+              }
+          ]
+          
+          def load_cache():
+              if os.path.exists(CACHE_FILE):
+                  try:
+                      with open(CACHE_FILE, 'r', encoding='utf-8') as f:
+                          return json.load(f)
+                  except (json.JSONDecodeError, FileNotFoundError):
+                      pass
+              return {"known_links": {}, "seen_order": []}
+          
+          def save_cache(cache_data):
+              os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
+              with open(CACHE_FILE, 'w', encoding='utf-8') as f:
+                  json.dump(cache_data, f, indent=2, ensure_ascii=False)
+          
+          def fetch_posts():
+              cache = load_cache()
+              all_entries = []
+              new_links = set()
+              
+              for feed_config in FEEDS:
+                  try:
+                      print(f"Fetching {feed_config['platform']} feed: {feed_config['url']}")
+                      feed = feedparser.parse(feed_config['url'])
+                      
+                      if feed.bozo:
+                          print(f"Warning: Feed may have issues: {feed.bozo_exception}")
+                      
+                      for entry in feed.entries:
+                          link = entry.link
+                          if link not in cache["known_links"]:
+                              new_links.add(link)
+                              cache["known_links"][link] = {
+                                  'title': entry.title,
+                                  'date': entry.published if hasattr(entry, 'published') else entry.updated,
+                                  'platform': feed_config['platform'],
+                                  'logo': feed_config['logo']
+                              }
+                              cache["seen_order"].insert(0, link)
+                          
+                          # Add to all_entries for processing
+                          try:
+                              pub_date = entry.published if hasattr(entry, 'published') else entry.updated
+                              parsed_date = datetime.strptime(pub_date, '%a, %d %b %Y %H:%M:%S %z')
+                          except:
+                              try:
+                                  parsed_date = datetime.strptime(pub_date, '%Y-%m-%dT%H:%M:%S%z')
+                              except:
+                                  parsed_date = datetime.now(timezone.utc)
+                          
+                          all_entries.append({
+                              'title': entry.title,
+                              'link': link,
+                              'date': parsed_date,
+                              'platform': feed_config['platform'],
+                              'logo': feed_config['logo']
+                          })
+                  
+                  except Exception as e:
+                      print(f"Error fetching {feed_config['platform']} feed: {e}")
+                      continue
+              
+              # Limit cache size (keep only latest 100)
+              cache["seen_order"] = cache["seen_order"][:100]
+              for link in list(cache["known_links"].keys()):
+                  if link not in cache["seen_order"]:
+                      del cache["known_links"][link]
+              
+              save_cache(cache)
+              
+              if new_links:
+                  print(f"Found {len(new_links)} new posts: {', '.join(new_links)}")
+              else:
+                  print("No new posts found")
+              
+              # Sort and limit to 5 most recent
+              all_entries.sort(key=lambda x: x['date'], reverse=True)
+              return all_entries[:5]
+          
+          # Main execution
+          print("Starting post update...")
+          entries = fetch_posts()
+          
+          if entries:
+              content_lines = ["| | Title | Date |", "|----------|-------|------|"] 
+              for entry in entries:
+                  try:
+                      platform = entry['platform']
+                      logo = entry['logo']
+                      date_str = entry['date'].astimezone(timezone.utc).strftime('%d/%m/%Y')
+                      clean_title = re.sub(r'[|]', '-', entry['title'])
+                      content_lines.append(f"| {logo} {platform} | [{clean_title}]({entry['link']}) | {date_str} |")
+                  except Exception as e:
+                      print(f"Error formatting entry: {e}")
+                      continue
+              new_content = '\n'.join(content_lines) + '\n'
+          else:
+              new_content = "| | Title | Date |\n|----------|-------|------|\n| 📝 Blog | No recent articles available | - |\n"
+          
+          print("Generated content:\n" + new_content)
+          
+          # ----------------------------
+          # README update (uses configurable markers)
+          # ----------------------------
+          readme_file = 'README.md'
+          try:
+              with open(readme_file, 'r', encoding='utf-8') as f:
+                  content = f.read()
+          except FileNotFoundError:
+              print(f"{readme_file} not found, creating a minimal one.")
+              content = "## 📝 Latest Articles\n\n" + START_MARKER + "\n" + END_MARKER + "\n"
+          
+          # ensure markers exist
+          if START_MARKER not in content or END_MARKER not in content:
+              header = '## 📝 Latest Articles'
+              if header in content and START_MARKER not in content:
+                  content = content.replace(header, f'{header}\n\n{START_MARKER}\n{END_MARKER}')
+              elif START_MARKER not in content:
+                  content += f"\n\n{START_MARKER}\n{END_MARKER}\n"
+          
+          pattern = f'{re.escape(START_MARKER)}.*?{re.escape(END_MARKER)}'
+          replacement = f'{START_MARKER}\n{new_content}{END_MARKER}'
+          updated_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+          
+          if updated_content != content:
+              with open(readme_file, 'w', encoding='utf-8') as f:
+                  f.write(updated_content)
+              print(f"Successfully updated {readme_file}")
+          else:
+              print("README content is unchanged.")
+          
+          # ensure cache file always exists
+          if not os.path.exists(CACHE_FILE):
+              os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
+              save_cache({"known_links": {}, "seen_order": []})
+          EOF
+          
+          python update_posts.py
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md
+          mkdir -p .utils; [ -f .utils/.posts_cache.json ] && git add .utils/.posts_cache.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update recent posts"
+            git push
+          fi
