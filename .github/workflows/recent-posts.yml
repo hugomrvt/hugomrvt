@@ -1,309 +1,388 @@
-name: Update Recent Posts
+name: Update recent posts
+
 on:
   schedule:
-    # Run twice daily at 6:00 AM and 6:00 PM UTC
+    # Runs at 06:00 and 18:00 UTC (08:00 and 20:00 in Paris during DST)
     - cron: '0 6,18 * * *'
   workflow_dispatch:
-    # Allow manual triggering
+
+permissions:
+  contents: write
+
 jobs:
   update-posts:
     runs-on: ubuntu-latest
+    env:
+      SUBSTACK_PUBLICATION: genairadar
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install feedparser requests python-dateutil beautifulsoup4
-        
-    - name: Update README with recent posts
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        python << 'EOF'
-        import feedparser
-        import requests
-        import re
-        from datetime import datetime, timezone
-        from dateutil import parser as date_parser
-        from bs4 import BeautifulSoup
-        import os
-        from urllib.parse import urljoin, urlparse
-        
-        def parse_date_flexible(entry):
-            """Parse date from RSS entry with multiple fallbacks"""
-            # Try different date fields and formats
-            date_fields = ['published', 'updated', 'created', 'pubDate']
-            parsed_fields = ['published_parsed', 'updated_parsed']
-            
-            # First try parsed fields
-            for field in parsed_fields:
-                if hasattr(entry, field) and getattr(entry, field):
-                    try:
-                        parsed_time = getattr(entry, field)
-                        if parsed_time and len(parsed_time) >= 6:
-                            return datetime(*parsed_time[:6], tzinfo=timezone.utc)
-                    except Exception as e:
-                        print(f"Error parsing {field}: {e}")
-                        continue
-            
-            # Then try string date fields with dateutil parser
-            for field in date_fields:
-                if hasattr(entry, field) and getattr(entry, field):
-                    try:
-                        date_str = getattr(entry, field)
-                        if isinstance(date_str, str):
-                            return date_parser.parse(date_str)
-                    except Exception as e:
-                        print(f"Error parsing {field} string: {e}")
-                        continue
-            
-            # Final fallback - use current time for entries without dates
-            print(f"No valid date found for entry: {entry.get('title', 'Unknown')}, using current time")
-            return datetime.now(timezone.utc)
-        
-        def detect_platform_logo(url):
-            """Detect platform from URL and return logo HTML with Google s2 favicons"""
-            if 'medium.com' in url.lower() or 'designsystemscollective.com' in url.lower() or 'stories.mrvt.io' in url.lower():
-                return 'Medium', '<img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/>'
-            elif 'substack.com' in url.lower():
-                return 'Substack', '<img alt="Substack" src="https://www.google.com/s2/favicons?domain=substack.com&sz=20" height="20" width="20"/>'
-            else:
-                return 'Blog', '📝'
-        
-        def fetch_feed_entries(url, use_fallback=False):
-            """Fetch entries from RSS feed with simplified logic for proxy"""
-            try:
-                print(f"Fetching feed: {url}")
-                feed = feedparser.parse(url)
-                
-                # Check for RSS parsing issues
-                if feed.bozo:
-                    print(f"RSS issues detected for {url}: {feed.bozo_exception}")
-                    if use_fallback:
-                        print("Using HTML fallback for Substack")
-                        return scrape_substack_archive()
-                
-                if not hasattr(feed, 'entries') or not feed.entries:
-                    print(f"No entries found in feed: {url}")
-                    if use_fallback:
-                        return scrape_substack_archive()
-                    return []
-                
-                entries = []
-                for entry in feed.entries[:10]:  # Limit to first 10 entries
-                    try:
-                        pub_date = parse_date_flexible(entry)
-                        title = entry.get('title', 'No title')
-                        link = entry.get('link', '')
-                        
-                        if link:  # Only add entries with valid links
-                            entries.append({
-                                'title': title,
-                                'link': link,
-                                'date': pub_date,
-                                'source': url
-                            })
-                            print(f"Added entry: {title} - {pub_date}")
-                    except Exception as e:
-                        print(f"Error processing entry: {e}")
-                        continue
-                        
-                print(f"Successfully fetched {len(entries)} entries from {url}")
-                return entries
-                
-            except Exception as e:
-                print(f"Error fetching {url}: {e}")
-                if use_fallback:
-                    return scrape_substack_archive()
-                return []
-        
-        def scrape_substack_archive():
-            """Fallback: Scrape Substack archive page"""
-            archive_url = 'https://genairadar.substack.com/archive'
-            print(f"Fallback: Scraping Substack archive: {archive_url}")
-            
-            try:
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (compatible; Blog RSS Fetcher)'
-                }
-                response = requests.get(archive_url, headers=headers, timeout=15)
-                
-                if response.status_code != 200:
-                    print(f"Archive request failed with {response.status_code}")
-                    return []
-                
-                soup = BeautifulSoup(response.content, 'html.parser')
-                entries = []
-                
-                # Look for Substack post links
-                post_links = soup.select('a[href*="/p/"]')
-                
-                for link in post_links[:5]:  # Limit to 5 entries
-                    try:
-                        title = link.get_text(strip=True)
-                        href = link.get('href', '')
-                        
-                        if href and not href.startswith('http'):
-                            href = urljoin(archive_url, href)
-                        
-                        if title and href and '/p/' in href:
-                            entries.append({
-                                'title': title,
-                                'link': href,
-                                'date': datetime.now(timezone.utc),
-                                'source': archive_url
-                            })
-                            print(f"Scraped: {title}")
-                    except Exception as e:
-                        print(f"Error processing scraped post: {e}")
-                        continue
-                
-                print(f"Successfully scraped {len(entries)} entries from archive")
-                return entries
-                
-            except Exception as e:
-                print(f"Error scraping Substack archive: {e}")
-                return []
-        
-        def try_multiple_feed_urls(base_urls):
-            """Try multiple feed URL variations"""
-            all_entries = []
-            
-            for base_url in base_urls:
-                if base_url == 'stories.mrvt.io':
-                    # Try /feed and /rss for stories.mrvt.io
-                    feed_urls = [
-                        f'https://{base_url}/feed',
-                        f'https://{base_url}/rss'
-                    ]
-                    
-                    for feed_url in feed_urls:
-                        entries = fetch_feed_entries(feed_url, use_fallback=False)
-                        if entries:
-                            all_entries.extend(entries)
-                            break  # Stop trying if we got results
-                            
-                elif 'substack-rss-proxy.vercel.app' in base_url:
-                    # Use the sanitized RSS proxy directly
-                    entries = fetch_feed_entries(base_url, use_fallback=True)
-                    all_entries.extend(entries)
-                    
-                else:
-                    # Default case
-                    entries = fetch_feed_entries(base_url, use_fallback=False)
-                    all_entries.extend(entries)
-            
-            return all_entries
-        
-        # RSS feed URLs - Updated to use sanitized proxy
-        FEED_SOURCES = [
-            'stories.mrvt.io',
-            'https://substack-rss-proxy.vercel.app/api/feed'
-        ]
-        
-        # Fetch all entries
-        all_entries = try_multiple_feed_urls(FEED_SOURCES)
-        
-        print(f"Total entries fetched: {len(all_entries)}")
-        
-        # Sort by date (newest first) and take top 5
-        if all_entries:
-            all_entries.sort(key=lambda x: x['date'], reverse=True)
-            top_entries = all_entries[:5]
-        else:
-            top_entries = []
-        
-        print(f"Top {len(top_entries)} entries selected")
-        
-        # Generate markdown table content with logos
-        if top_entries:
-            content_lines = [
-                "| Platform | Title | Date |",
-                "|----------|-------|------|"
-            ]
-            
-            for entry in top_entries:
-                try:
-                    platform, logo = detect_platform_logo(entry['link'])
-                    date_str = entry['date'].strftime('%d/%m/%Y')
-                    
-                    # Clean title for table
-                    clean_title = re.sub(r'[|]', '-', entry['title'])
-                    
-                    content_lines.append(f"| {logo} {platform} | [{clean_title}]({entry['link']}) | {date_str} |")
-                except Exception as e:
-                    print(f"Error formatting entry: {e}")
-                    continue
-            
-            new_content = '\n'.join(content_lines) + '\n'
-        else:
-            new_content = "| Platform | Title | Date |\n|----------|-------|------|\n| 📝 Blog | No recent articles available | - |\n"
-        
-        print(f"Generated content:\n{new_content}")
-        
-        # Define explicit markers
-        START_MARKER = '<!-- LATEST_ARTICLES_START -->'
-        END_MARKER = '<!-- LATEST_ARTICLES_END -->'
-        
-        # Update README.md
-        readme_file = 'README.md'
-        try:
-            with open(readme_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                
-            print(f"Original README.md length: {len(content)} characters")
-            
-            # Check if markers exist
-            if START_MARKER not in content:
-                # Add markers after the Latest Articles header
-                articles_header = '## 📝 Latest Articles'
-                if articles_header in content:
-                    content = content.replace(
-                        articles_header,
-                        f'{articles_header}\n\n{START_MARKER}\n{END_MARKER}'
-                    )
-                    print("Added markers to README.md")
-                else:
-                    print(f"Warning: Could not find '{articles_header}' header in README.md")
-            
-            # Replace content between markers
-            pattern = f'{re.escape(START_MARKER)}.*?{re.escape(END_MARKER)}'
-            replacement = f'{START_MARKER}\n{new_content}{END_MARKER}'
-            
-            updated_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
-            
-            if updated_content != content:
-                with open(readme_file, 'w', encoding='utf-8') as f:
-                    f.write(updated_content)
-                print(f"Successfully updated {readme_file}")
-                print(f"Updated README.md length: {len(updated_content)} characters")
-            else:
-                print(f"No changes needed for {readme_file}")
-                
-        except FileNotFoundError:
-            print(f"File {readme_file} not found")
-        except Exception as e:
-            print(f"Error updating {readme_file}: {e}")
-        
-        EOF
-        
-    - name: Commit changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add README.md
-        
-        # Only commit if there are changes
-        if git diff --staged --quiet; then
-          echo "No changes to commit"
-        else
-          git commit -m "feat: use sanitized Substack RSS proxy"
-          git push
-        fi
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install feedparser requests python-dateutil beautifulsoup4
+
+      - name: Update README with recent posts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python << 'EOF'
+          import feedparser
+          import requests
+          import re
+          import os
+          import sys
+          import json
+          import calendar
+          from datetime import datetime, timezone
+          from dateutil import parser as date_parser
+          from bs4 import BeautifulSoup
+          from urllib.parse import urljoin
+
+          # ----------------------------
+          # config
+          # ----------------------------
+          SUBSTACK_PUBLICATION = os.getenv("SUBSTACK_PUBLICATION", "genairadar").strip()
+          SUBSTACK_BASE = f"https://{SUBSTACK_PUBLICATION}.substack.com"
+          SUBSTACK_FEED = f"{SUBSTACK_BASE}/feed"
+          STORIES_BASE = "stories.mrvt.io"
+
+          FEED_SOURCES = [
+              STORIES_BASE,        # will try /feed then /rss
+              SUBSTACK_FEED,       # native Substack RSS feed
+          ]
+
+          CACHE_FILE = ".posts_cache.json"
+
+          BROWSER_HEADERS = {
+              "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                             "AppleWebKit/537.36 (KHTML, like Gecko) "
+                             "Chrome/120.0.0.0 Safari/537.36"),
+              "Accept": "application/rss+xml,text/xml;q=0.9,*/*;q=0.8",
+              "Accept-Language": "en-US,en;q=0.9,fr;q=0.8",
+          }
+
+          # ----------------------------
+          # cache utils
+          # ----------------------------
+          def load_cache():
+              try:
+                  with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                      return json.load(f)
+              except Exception:
+                  return {"known_links": {}, "seen_order": []}
+
+          def save_cache(cache):
+              # cap to 500 links to avoid growing indefinitely
+              if len(cache.get("seen_order", [])) > 500:
+                  to_drop = len(cache["seen_order"]) - 500
+                  drop_set = set(cache["seen_order"][:to_drop])
+                  cache["seen_order"] = cache["seen_order"][to_drop:]
+                  for lk in list(cache["known_links"].keys()):
+                      if lk in drop_set:
+                          del cache["known_links"][lk]
+              with open(CACHE_FILE, "w", encoding="utf-8") as f:
+                  json.dump(cache, f, ensure_ascii=False, indent=2)
+
+          def post_key(entry):
+              # use the link without query as a stable key
+              return entry["link"].split("?")[0]
+
+          # ----------------------------
+          # date parsing
+          # ----------------------------
+          def to_utc_from_struct(t):
+              # feedparser often returns struct_time in UTC → convert to aware datetime
+              return datetime.fromtimestamp(calendar.timegm(t), tz=timezone.utc)
+
+          def ensure_aware(dt):
+              # ensure timezone-aware UTC datetime
+              if dt.tzinfo is None:
+                  return dt.replace(tzinfo=timezone.utc)
+              return dt
+
+          def parse_date_flexible(entry):
+              # try parsed fields first
+              parsed_fields = ['published_parsed', 'updated_parsed']
+              for field in parsed_fields:
+                  st = getattr(entry, field, None)
+                  if st:
+                      try:
+                          return to_utc_from_struct(st)
+                      except Exception:
+                          pass
+
+              # then try string fields
+              date_fields = ['published', 'updated', 'created', 'pubDate']
+              for field in date_fields:
+                  ds = getattr(entry, field, None)
+                  if isinstance(ds, str) and ds.strip():
+                      try:
+                          return ensure_aware(date_parser.parse(ds))
+                      except Exception:
+                          pass
+
+              # final fallback: current time
+              return datetime.now(timezone.utc)
+
+          # ----------------------------
+          # platform detection (for icon)
+          # ----------------------------
+          def detect_platform_logo(url):
+              u = url.lower()
+              if 'medium.com' in u or 'designsystemscollective.com' in u or 'stories.mrvt.io' in u:
+                  return 'Medium', '<img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/>'
+              elif 'substack.com' in u:
+                  return 'Substack', '<img alt="Substack" src="https://www.google.com/s2/favicons?domain=substack.com&sz=20" height="20" width="20"/>'
+              else:
+                  return 'Blog', '📝'
+
+          # ----------------------------
+          # fetch RSS using a browser-like UA
+          # ----------------------------
+          def parse_feed_with_requests(url):
+              r = requests.get(url, headers=BROWSER_HEADERS, timeout=20)
+              if r.status_code != 200:
+                  raise RuntimeError(f"Feed HTTP {r.status_code} for {url}")
+              return feedparser.parse(r.content)
+
+          def fetch_feed_entries(url, use_fallback=False, base_for_fallback=None):
+              try:
+                  print(f"Fetching feed: {url}")
+                  feed = parse_feed_with_requests(url)
+                  if getattr(feed, "bozo", 0):
+                      print(f"RSS issues detected for {url}: {getattr(feed, 'bozo_exception', '')}")
+                      if use_fallback and base_for_fallback:
+                          return scrape_substack_archive(base_for_fallback)
+
+                  if not getattr(feed, "entries", []):
+                      print(f"No entries found in feed: {url}")
+                      if use_fallback and base_for_fallback:
+                          return scrape_substack_archive(base_for_fallback)
+                      return []
+
+                  entries = []
+                  for entry in feed.entries[:10]:
+                      try:
+                          pub_date = parse_date_flexible(entry)
+                          title = entry.get('title', 'No title')
+                          link = entry.get('link', '')
+                          if link:
+                              entries.append({
+                                  'title': title,
+                                  'link': link,
+                                  'date': pub_date,
+                                  'source': url
+                              })
+                      except Exception as e:
+                          print(f"Error processing entry: {e}")
+                          continue
+                  print(f"Fetched {len(entries)} entries from {url}")
+                  return entries
+
+              except Exception as e:
+                  print(f"Error fetching {url}: {e}")
+                  if use_fallback and base_for_fallback:
+                      return scrape_substack_archive(base_for_fallback)
+                  return []
+
+          # ----------------------------
+          # substack archive fallback
+          # ----------------------------
+          def scrape_substack_archive(base_url):
+              archive_url = urljoin(base_url if base_url.endswith("/") else base_url + "/", "archive")
+              print(f"Fallback: scraping Substack archive {archive_url}")
+              try:
+                  headers = {
+                      **BROWSER_HEADERS,
+                      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                      "Referer": "https://www.google.com/",
+                      "Cache-Control": "no-cache",
+                  }
+                  r = requests.get(archive_url, headers=headers, timeout=20)
+                  if r.status_code != 200:
+                      print(f"Archive request failed with {r.status_code}")
+                      return []
+
+                  soup = BeautifulSoup(r.content, "html.parser")
+                  links = soup.select('a[href^="/p/"]')
+                  seen = set()
+                  entries = []
+                  for a in links:
+                      href = a.get("href", "")
+                      title = a.get_text(strip=True)
+                      if not href or "/p/" not in href:
+                          continue
+                      abs_url = urljoin(base_url, href)
+                      if abs_url in seen:
+                          continue
+                      seen.add(abs_url)
+                      if title:
+                          entries.append({
+                              "title": title,
+                              "link": abs_url,
+                              "date": datetime.now(timezone.utc),  # archive pages don't expose reliable dates
+                              "source": archive_url
+                          })
+                      if len(entries) >= 5:
+                          break
+                  print(f"Scraped {len(entries)} entries from archive")
+                  return entries
+              except Exception as e:
+                  print(f"Error scraping Substack archive: {e}")
+                  return []
+
+          # ----------------------------
+          # source orchestration
+          # ----------------------------
+          def try_multiple_feed_urls(base_urls):
+              all_entries = []
+              for base in base_urls:
+                  if base == STORIES_BASE:
+                      # try both endpoints for WordPress-like feeds
+                      for feed_url in (f"https://{STORIES_BASE}/feed", f"https://{STORIES_BASE}/rss"):
+                          e = fetch_feed_entries(feed_url, use_fallback=False)
+                          if e:
+                              all_entries.extend(e)
+                              break
+                  elif "substack.com" in base:
+                      e = fetch_feed_entries(base, use_fallback=True, base_for_fallback=SUBSTACK_BASE)
+                      all_entries.extend(e)
+                  else:
+                      e = fetch_feed_entries(base, use_fallback=False)
+                      all_entries.extend(e)
+              return all_entries
+
+          # ----------------------------
+          # fetch entries
+          # ----------------------------
+          all_entries = try_multiple_feed_urls(FEED_SOURCES)
+          print(f"Total entries fetched: {len(all_entries)}")
+
+          # if nothing found, exit gracefully
+          if not all_entries:
+              print("No entries from any source; skipping README update.")
+              sys.exit(0)
+
+          # sort by date (newest first)
+          all_entries.sort(key=lambda x: x["date"], reverse=True)
+
+          # detect new links via cache
+          cache = load_cache()
+          known = cache.get("known_links", {})
+          seen_order = cache.get("seen_order", [])
+
+          new_links = []
+          for e in all_entries:
+              k = post_key(e)
+              if k not in known:
+                  new_links.append(k)
+
+          if not new_links:
+              print("No new posts detected; skipping README update.")
+              sys.exit(0)
+
+          # update cache with new links
+          for e in all_entries:
+              k = post_key(e)
+              if k not in known:
+                  known[k] = e["date"].astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                  seen_order.append(k)
+
+          cache["known_links"] = known
+          cache["seen_order"] = seen_order
+          save_cache(cache)
+
+          # stabilize dates for /archive-derived entries using cached ISO date
+          for e in all_entries:
+              k = post_key(e)
+              src = str(e.get("source", "")).lower()
+              if "/archive" in src and k in known:
+                  try:
+                      e["date"] = ensure_aware(date_parser.parse(known[k]))
+                  except Exception:
+                      pass
+
+          # take top 5
+          top_entries = all_entries[:5]
+
+          # ----------------------------
+          # generate markdown table
+          # ----------------------------
+          if top_entries:
+              content_lines = [
+                  "| Platform | Title | Date |",
+                  "|----------|-------|------|"
+              ]
+              for entry in top_entries:
+                  try:
+                      platform, logo = detect_platform_logo(entry['link'])
+                      date_str = entry['date'].astimezone(timezone.utc).strftime('%d/%m/%Y')
+                      clean_title = re.sub(r'[|]', '-', entry['title'])
+                      content_lines.append(f"| {logo} {platform} | [{clean_title}]({entry['link']}) | {date_str} |")
+                  except Exception as e:
+                      print(f"Error formatting entry: {e}")
+                      continue
+              new_content = '\n'.join(content_lines) + '\n'
+          else:
+              new_content = "| Platform | Title | Date |\n|----------|-------|------|\n| 📝 Blog | No recent articles available | - |\n"
+
+          print("Generated content:\n" + new_content)
+
+          # ----------------------------
+          # update README
+          # ----------------------------
+          START_MARKER = '<!-- LATEST_ARTICLES_START -->'
+          END_MARKER = '<!-- LATEST_ARTICLES_END -->'
+          readme_file = 'README.md'
+
+          try:
+              with open(readme_file, 'r', encoding='utf-8') as f:
+                  content = f.read()
+          except FileNotFoundError:
+              # create a minimal README if missing
+              print(f"{readme_file} not found, creating a minimal one.")
+              content = "## 📝 Latest Articles\n\n" + START_MARKER + "\n" + END_MARKER + "\n"
+
+          # ensure markers exist
+          if START_MARKER not in content or END_MARKER not in content:
+              header = '## 📝 Latest Articles'
+              if header in content and START_MARKER not in content:
+                  content = content.replace(
+                      header,
+                      f'{header}\n\n{START_MARKER}\n{END_MARKER}'
+                  )
+              elif START_MARKER not in content:
+                  content += f"\n\n{START_MARKER}\n{END_MARKER}\n"
+
+          pattern = f'{re.escape(START_MARKER)}.*?{re.escape(END_MARKER)}'
+          replacement = f'{START_MARKER}\n{new_content}{END_MARKER}'
+          updated_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+
+          if updated_content != content:
+              with open(readme_file, 'w', encoding='utf-8') as f:
+                  f.write(updated_content)
+              print(f"Successfully updated {readme_file}")
+          else:
+              print("README content is unchanged.")
+
+          EOF
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md .posts_cache.json || true
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else:
+            git commit -m "chore: update recent posts"
+            git push
+          fi
