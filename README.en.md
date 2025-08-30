@@ -1,14 +1,15 @@
 # Hugo Mourlevat
-**Chief Design Officer at [@Michelin](https://github.com/michelin) & (AI) Product Builder**
 
-> 👋🏽 Welcome to my GitHub profile! I'm a passionate Design Technologist who ships code and explores GenAI possibilities, creating meaningful digital experiences that blend human-centered design with artificial intelligence to solve real-world problems.
+**Chief Design Officer at [Michelin](https://github.com/michelin) & (AI) Product Builder**
+
+👋🏽 Welcome to my GitHub profile! I'm a passionate Design Technologist who ships code and explores GenAI possibilities, creating meaningful digital experiences that blend human-centered design with artificial intelligence to solve real-world problems.
 
 ## What I Do
 
 - 🤖 **AI-Enhanced Design Leadership**: Scaling design teams at Michelin through GenAI workflows and intelligent tool sourcing
 - ⚡ **Generative Product Development**: Building next-gen applications that blend traditional coding with AI-powered creation
 - 🎨 **Intelligent Design Systems**: Crafting scalable experiences using AI-generated components and automated design tokens
-- 🚀 **AI Product Building Stack**: Lovable, Bolt, v0, Emergent, Figma Make, Cursor, Trae, Github Copilot, Kiro, tools that revolutionize how we ship digital products
+- 🚀 **AI Product Building Stack**: Lovable, Bolt, v0, Emergent, Figma Make, Cursor, Trae, Github Copilot, Kiro - tools that revolutionize how we ship digital products
 
 ## Recent Projects
 
@@ -33,15 +34,16 @@
 
 ## 🌍 Connect With Me
 
-- **Website**: [hugo.mourlev.at](https://hugo.mourlev.at)
-- **Stories**: [stories.mrvt.io](https://stories.mrvt.io)
-- **GenAI Radar**: [genairadar.substack.com](https://genairadar.substack.com)
+- **Website**: [hugo.mourlev.at](https://hugo.mourlev.at/)
+- **Stories**: [stories.mrvt.io](https://stories.mrvt.io/) - My thoughts and experiences on design and AI
+- **GenAI Radar**: [genairadar.substack.com](https://genairadar.substack.com/) - My newsletter on generative AI news
 - **Twitter/X**: [@hugomrvt](https://twitter.com/hugomrvt)
 - **Location**: Lyon, France 🇫🇷
 
 ## 📊 GitHub Stats
 
 ![GitHub Stats](https://github-readme-stats.vercel.app/api?username=hugomrvt&show_icons=true&theme=dark)
+![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username=hugomrvt&layout=compact&theme=dark)
 
 ---
 
