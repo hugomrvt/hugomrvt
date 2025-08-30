@@ -5,7 +5,6 @@ on:
     - cron: '0 6,18 * * *'
   workflow_dispatch:
     # Allow manual triggering
-
 jobs:
   update-posts:
     runs-on: ubuntu-latest
@@ -69,101 +68,99 @@ jobs:
             print(f"No valid date found for entry: {entry.get('title', 'Unknown')}, using current time")
             return datetime.now(timezone.utc)
         
-        def detect_platform(url):
-            """Detect platform from URL"""
+        def detect_platform_logo(url):
+            """Detect platform from URL and return logo HTML"""
             if 'medium.com' in url.lower():
-                return 'Medium', '🟢'
+                return 'Medium', '<img src="https://seeklogo.com/images/M/medium-logo-F6BAFE7A6B-seeklogo.com.png" width="20" height="20" alt="Medium">'
             elif 'substack.com' in url.lower():
-                return 'Substack', '🟠'
+                return 'Substack', '<img src="https://seeklogo.com/images/S/substack-logo-AE5EF3A7D5-seeklogo.com.png" width="20" height="20" alt="Substack">'
             else:
                 return 'Blog', '📝'
         
-        def scrape_substack_html(base_url):
-            """Scrape Substack HTML as fallback when RSS fails"""
-            print(f"Attempting HTML scraping for {base_url}")
+        def scrape_substack_archive():
+            """Scrape Substack archive page to extract at least 5 posts"""
+            archive_url = 'https://genairadar.substack.com/archive'
+            print(f"Scraping Substack archive: {archive_url}")
             
-            urls_to_try = [
-                base_url,
-                urljoin(base_url, '/archive')
-            ]
-            
-            for url in urls_to_try:
-                try:
-                    print(f"Trying to scrape: {url}")
-                    headers = {
-                        'User-Agent': 'Mozilla/5.0 (compatible; Blog RSS Fetcher)'
-                    }
-                    response = requests.get(url, headers=headers, timeout=10)
-                    response.raise_for_status()
-                    
-                    soup = BeautifulSoup(response.content, 'html.parser')
-                    
-                    entries = []
-                    
-                    # Look for Substack post patterns
-                    post_selectors = [
-                        'a[href*="/p/"]',  # Standard Substack post links
-                        '.post-preview-title a',
-                        '.frontend-pencraft-Box-module__box--yKqwj a[href*="/p/"]'
-                    ]
-                    
-                    for selector in post_selectors:
-                        post_links = soup.select(selector)
-                        if post_links:
-                            print(f"Found {len(post_links)} posts with selector: {selector}")
-                            
-                            for link in post_links[:10]:  # Limit to 10
-                                try:
-                                    title = link.get_text(strip=True)
-                                    href = link.get('href', '')
-                                    
-                                    # Make absolute URL
-                                    if href and not href.startswith('http'):
-                                        href = urljoin(base_url, href)
-                                    
-                                    if title and href and '/p/' in href:
-                                        # Try to find publication date
-                                        pub_date = datetime.now(timezone.utc)
-                                        
-                                        # Look for date near the link
-                                        date_container = link.find_parent(['article', 'div', 'section'])
-                                        if date_container:
-                                            date_elements = date_container.find_all(['time', 'span'], string=re.compile(r'\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec'))
-                                            for date_elem in date_elements:
-                                                try:
-                                                    date_text = date_elem.get_text(strip=True)
-                                                    if date_elem.get('datetime'):
-                                                        date_text = date_elem.get('datetime')
-                                                    pub_date = date_parser.parse(date_text)
-                                                    break
-                                                except:
-                                                    continue
-                                        
-                                        entries.append({
-                                            'title': title,
-                                            'link': href,
-                                            'date': pub_date,
-                                            'source': base_url
-                                        })
-                                        print(f"Scraped: {title} - {pub_date}")
-                                        
-                                except Exception as e:
-                                    print(f"Error processing scraped post: {e}")
-                                    continue
-                            
-                            if entries:
-                                break  # Stop trying selectors if we found posts
-                    
-                    if entries:
-                        print(f"Successfully scraped {len(entries)} entries from {url}")
-                        return entries
+            try:
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (compatible; Blog RSS Fetcher)'
+                }
+                response = requests.get(archive_url, headers=headers, timeout=15)
+                response.raise_for_status()
+                
+                soup = BeautifulSoup(response.content, 'html.parser')
+                entries = []
+                
+                # Look for Substack post patterns in archive page
+                post_selectors = [
+                    'a[href*="/p/"]',  # Standard Substack post links
+                    '.post-preview-title a',
+                    '.frontend-pencraft-Box-module__box a[href*="/p/"]',
+                    'h3 a[href*="/p/"]',
+                    '.post-title a[href*="/p/"]'
+                ]
+                
+                for selector in post_selectors:
+                    post_links = soup.select(selector)
+                    if post_links:
+                        print(f"Found {len(post_links)} posts with selector: {selector}")
                         
-                except Exception as e:
-                    print(f"Error scraping {url}: {e}")
-                    continue
-            
-            print(f"Failed to scrape any content from {base_url}")
-            return []
+                        for link in post_links:
+                            try:
+                                title = link.get_text(strip=True)
+                                href = link.get('href', '')
+                                
+                                # Make absolute URL
+                                if href and not href.startswith('http'):
+                                    href = urljoin(archive_url, href)
+                                
+                                if title and href and '/p/' in href:
+                                    # Try to find publication date
+                                    pub_date = datetime.now(timezone.utc)
+                                    
+                                    # Look for date elements near the link
+                                    parent = link.find_parent(['article', 'div', 'section', 'li'])
+                                    if parent:
+                                        # Look for time elements or date strings
+                                        date_elements = parent.find_all(['time', 'span', 'div'], string=re.compile(r'\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{1,2}/\d{1,2}/\d{4}|\d{1,2}-\d{1,2}-\d{4}'))
+                                        
+                                        for date_elem in date_elements:
+                                            try:
+                                                date_text = date_elem.get_text(strip=True)
+                                                if date_elem.get('datetime'):
+                                                    date_text = date_elem.get('datetime')
+                                                
+                                                # Try parsing the date
+                                                parsed_date = date_parser.parse(date_text)
+                                                # Only use dates that seem reasonable (not too far in future)
+                                                if parsed_date <= datetime.now(timezone.utc):
+                                                    pub_date = parsed_date
+                                                    break
+                                            except Exception:
+                                                continue
+                                    
+                                    entries.append({
+                                        'title': title,
+                                        'link': href,
+                                        'date': pub_date,
+                                        'source': archive_url
+                                    })
+                                    print(f"Scraped: {title} - {pub_date.strftime('%d/%m/%Y')}")
+                                    
+                            except Exception as e:
+                                print(f"Error processing scraped post: {e}")
+                                continue
+                        
+                        if len(entries) >= 5:
+                            break  # Stop when we have at least 5 entries
+                
+                print(f"Successfully scraped {len(entries)} entries from archive")
+                return entries[:10]  # Limit to 10 entries
+                
+            except Exception as e:
+                print(f"Error scraping Substack archive: {e}")
+                return []
         
         def fetch_feed_entries(url, use_fallback=True):
             """Fetch entries from RSS feed with HTML fallback for Substack"""
@@ -181,8 +178,7 @@ jobs:
                     
                     # Try HTML fallback for Substack
                     if use_fallback and 'substack.com' in url:
-                        base_url = url.replace('/feed', '').replace('/rss', '')
-                        return scrape_substack_html(base_url)
+                        return scrape_substack_archive()
                 
                 if not hasattr(feed, 'entries') or not feed.entries:
                     print(f"No entries found in feed: {url}")
@@ -234,7 +230,7 @@ jobs:
                             break  # Stop trying if we got results
                             
                 elif 'substack.com' in base_url:
-                    # For Substack, try RSS first, then fallback to HTML
+                    # For Substack, try RSS first, then fallback to archive scraping
                     feed_url = f'{base_url}/feed'
                     entries = fetch_feed_entries(feed_url, use_fallback=True)
                     all_entries.extend(entries)
@@ -266,7 +262,7 @@ jobs:
         
         print(f"Top {len(top_entries)} entries selected")
         
-        # Generate markdown table content
+        # Generate markdown table content with logos
         if top_entries:
             content_lines = [
                 "| Platform | Title | Date |",
@@ -275,7 +271,7 @@ jobs:
             
             for entry in top_entries:
                 try:
-                    platform, logo = detect_platform(entry['link'])
+                    platform, logo = detect_platform_logo(entry['link'])
                     date_str = entry['date'].strftime('%d/%m/%Y')
                     
                     # Clean title for table
@@ -348,6 +344,6 @@ jobs:
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
-          git commit -m "feat(workflow): tolerant RSS + HTML fallback (Substack) and unified table output"
+          git commit -m "feat(workflow): Substack archive fallback + logo table rendering (top-5)"
           git push
         fi
