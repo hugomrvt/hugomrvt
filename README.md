@@ -1,8 +1,7 @@
 # Hugo Mourlevat
 **Chief Design Officer at [@Michelin](https://github.com/michelin) & (AI) Product Builder**
 
-> 👋🏽 Welcome to my GitHub profile! 
-I'm a passionate Design Technologist who ships code and explores GenAI possibilities, creating meaningful digital experiences that blend human-centered design with artificial intelligence to solve real-world problems.
+> 👋🏽 Welcome to my GitHub profile! I'm a passionate Design Technologist who ships code and explores GenAI possibilities, creating meaningful digital experiences that blend human-centered design with artificial intelligence to solve real-world problems.
 
 ## What I Do
 
@@ -11,13 +10,17 @@ I'm a passionate Design Technologist who ships code and explores GenAI possibili
 - 🎨 **Intelligent Design Systems**: Crafting scalable experiences using AI-generated components and automated design tokens
 - 🚀 **AI Product Building Stack**: Lovable, Bolt, v0, Emergent, Figma Make, Cursor, Trae, Github Copilot, Kiro, tools that revolutionize how we ship digital products
 
-
-
 ## Recent Projects
 
 - **[VacayGen](https://github.com/hugomrvt/vacaygen)** - AI-powered vacation message generator for professionals
 - **[MRVT TimeSpot](https://github.com/hugomrvt/mrvt-timespot)** - Modern world clock with real-time updates
 - **[Not A Robot Design](https://github.com/hugomrvt/not-a-robot-design)** - Captcha challenge for Designer
+
+## 📝 Latest Articles
+
+<!-- SECTION:RECENT_POSTS_START -->
+<!-- This section is automatically updated by GitHub Actions -->
+<!-- SECTION:RECENT_POSTS_END -->
 
 ## Tech Stack
 
@@ -31,25 +34,17 @@ I'm a passionate Design Technologist who ships code and explores GenAI possibili
 ## 🌍 Connect With Me
 
 - **Website**: [hugo.mourlev.at](https://hugo.mourlev.at)
+- **Stories**: [stories.mrvt.io](https://stories.mrvt.io)
+- **GenAI Radar**: [genairadar.substack.com](https://genairadar.substack.com)
 - **Twitter/X**: [@hugomrvt](https://twitter.com/hugomrvt)
 - **Location**: Lyon, France 🇫🇷
 
 ## 📊 GitHub Stats
 
-<!-- Dark mode version -->
 ![GitHub Stats](https://github-readme-stats.vercel.app/api?username=hugomrvt&show_icons=true&theme=dark)
 
-<!-- Example: Automatic light/dark theme switching -->
-<!-- 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github-readme-stats.vercel.app/api?username=hugomrvt&show_icons=true&theme=dark">
-  <source media="(prefers-color-scheme: light)" srcset="https://github-readme-stats.vercel.app/api?username=hugomrvt&show_icons=true&theme=default">
-  <img alt="GitHub Stats" src="https://github-readme-stats.vercel.app/api?username=hugomrvt&show_icons=true&theme=default">
-</picture>
--->
-
 ---
-<br>
+
 <div align="center">
   <i>"Design is not just what it looks like and feels like. Design is how it works." - Steve Jobs</i>
 </div>
