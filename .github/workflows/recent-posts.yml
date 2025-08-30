@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install feedparser requests python-dateutil
+        pip install feedparser requests python-dateutil beautifulsoup4
         
     - name: Update README with recent posts
       env:
@@ -29,10 +29,13 @@ jobs:
       run: |
         python << 'EOF'
         import feedparser
+        import requests
         import re
         from datetime import datetime, timezone
         from dateutil import parser as date_parser
+        from bs4 import BeautifulSoup
         import os
+        from urllib.parse import urljoin, urlparse
         
         def parse_date_flexible(entry):
             """Parse date from RSS entry with multiple fallbacks"""
@@ -66,14 +69,120 @@ jobs:
             print(f"No valid date found for entry: {entry.get('title', 'Unknown')}, using current time")
             return datetime.now(timezone.utc)
         
-        def fetch_feed_entries(url):
-            """Fetch entries from RSS feed with improved error handling"""
+        def detect_platform(url):
+            """Detect platform from URL"""
+            if 'medium.com' in url.lower():
+                return 'Medium', '🟢'
+            elif 'substack.com' in url.lower():
+                return 'Substack', '🟠'
+            else:
+                return 'Blog', '📝'
+        
+        def scrape_substack_html(base_url):
+            """Scrape Substack HTML as fallback when RSS fails"""
+            print(f"Attempting HTML scraping for {base_url}")
+            
+            urls_to_try = [
+                base_url,
+                urljoin(base_url, '/archive')
+            ]
+            
+            for url in urls_to_try:
+                try:
+                    print(f"Trying to scrape: {url}")
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (compatible; Blog RSS Fetcher)'
+                    }
+                    response = requests.get(url, headers=headers, timeout=10)
+                    response.raise_for_status()
+                    
+                    soup = BeautifulSoup(response.content, 'html.parser')
+                    
+                    entries = []
+                    
+                    # Look for Substack post patterns
+                    post_selectors = [
+                        'a[href*="/p/"]',  # Standard Substack post links
+                        '.post-preview-title a',
+                        '.frontend-pencraft-Box-module__box--yKqwj a[href*="/p/"]'
+                    ]
+                    
+                    for selector in post_selectors:
+                        post_links = soup.select(selector)
+                        if post_links:
+                            print(f"Found {len(post_links)} posts with selector: {selector}")
+                            
+                            for link in post_links[:10]:  # Limit to 10
+                                try:
+                                    title = link.get_text(strip=True)
+                                    href = link.get('href', '')
+                                    
+                                    # Make absolute URL
+                                    if href and not href.startswith('http'):
+                                        href = urljoin(base_url, href)
+                                    
+                                    if title and href and '/p/' in href:
+                                        # Try to find publication date
+                                        pub_date = datetime.now(timezone.utc)
+                                        
+                                        # Look for date near the link
+                                        date_container = link.find_parent(['article', 'div', 'section'])
+                                        if date_container:
+                                            date_elements = date_container.find_all(['time', 'span'], string=re.compile(r'\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec'))
+                                            for date_elem in date_elements:
+                                                try:
+                                                    date_text = date_elem.get_text(strip=True)
+                                                    if date_elem.get('datetime'):
+                                                        date_text = date_elem.get('datetime')
+                                                    pub_date = date_parser.parse(date_text)
+                                                    break
+                                                except:
+                                                    continue
+                                        
+                                        entries.append({
+                                            'title': title,
+                                            'link': href,
+                                            'date': pub_date,
+                                            'source': base_url
+                                        })
+                                        print(f"Scraped: {title} - {pub_date}")
+                                        
+                                except Exception as e:
+                                    print(f"Error processing scraped post: {e}")
+                                    continue
+                            
+                            if entries:
+                                break  # Stop trying selectors if we found posts
+                    
+                    if entries:
+                        print(f"Successfully scraped {len(entries)} entries from {url}")
+                        return entries
+                        
+                except Exception as e:
+                    print(f"Error scraping {url}: {e}")
+                    continue
+            
+            print(f"Failed to scrape any content from {base_url}")
+            return []
+        
+        def fetch_feed_entries(url, use_fallback=True):
+            """Fetch entries from RSS feed with HTML fallback for Substack"""
             try:
                 print(f"Fetching feed: {url}")
                 feed = feedparser.parse(url)
                 
-                if feed.bozo:
-                    print(f"Warning: Feed {url} has parsing issues: {feed.bozo_exception}")
+                # Check for RSS parsing issues or empty feed
+                has_issues = feed.bozo or not hasattr(feed, 'entries') or len(feed.entries) == 0
+                
+                if has_issues:
+                    print(f"RSS issues detected for {url}: bozo={feed.bozo}, entries={len(getattr(feed, 'entries', []))}")
+                    if feed.bozo:
+                        print(f"Bozo exception: {feed.bozo_exception}")
+                    
+                    # Try HTML fallback for Substack
+                    if use_fallback and 'substack.com' in url:
+                        base_url = url.replace('/feed', '').replace('/rss', '')
+                        return scrape_substack_html(base_url)
                 
                 if not hasattr(feed, 'entries') or not feed.entries:
                     print(f"No entries found in feed: {url}")
@@ -106,17 +215,45 @@ jobs:
                 print(f"Error fetching {url}: {e}")
                 return []
         
-        # RSS feed URLs - explicitly verify these URLs
-        FEED_URLS = [
-            'https://stories.mrvt.io/feed',
-            'https://genairadar.substack.com/feed'
+        def try_multiple_feed_urls(base_urls):
+            """Try multiple feed URL variations"""
+            all_entries = []
+            
+            for base_url in base_urls:
+                if base_url == 'stories.mrvt.io':
+                    # Try /feed and /rss for stories.mrvt.io
+                    feed_urls = [
+                        f'https://{base_url}/feed',
+                        f'https://{base_url}/rss'
+                    ]
+                    
+                    for feed_url in feed_urls:
+                        entries = fetch_feed_entries(feed_url, use_fallback=False)
+                        if entries:
+                            all_entries.extend(entries)
+                            break  # Stop trying if we got results
+                            
+                elif 'substack.com' in base_url:
+                    # For Substack, try RSS first, then fallback to HTML
+                    feed_url = f'{base_url}/feed'
+                    entries = fetch_feed_entries(feed_url, use_fallback=True)
+                    all_entries.extend(entries)
+                    
+                else:
+                    # Default case
+                    entries = fetch_feed_entries(base_url, use_fallback=False)
+                    all_entries.extend(entries)
+            
+            return all_entries
+        
+        # RSS feed URLs
+        FEED_SOURCES = [
+            'stories.mrvt.io',
+            'https://genairadar.substack.com'
         ]
         
         # Fetch all entries
-        all_entries = []
-        for url in FEED_URLS:
-            entries = fetch_feed_entries(url)
-            all_entries.extend(entries)
+        all_entries = try_multiple_feed_urls(FEED_SOURCES)
         
         print(f"Total entries fetched: {len(all_entries)}")
         
@@ -129,27 +266,37 @@ jobs:
         
         print(f"Top {len(top_entries)} entries selected")
         
-        # Generate markdown content
+        # Generate markdown table content
         if top_entries:
-            content_lines = []
+            content_lines = [
+                "| Platform | Title | Date |",
+                "|----------|-------|------|"
+            ]
+            
             for entry in top_entries:
                 try:
-                    date_str = entry['date'].strftime('%B %d, %Y')
-                    content_lines.append(f"- [{entry['title']}]({entry['link']}) - {date_str}")
+                    platform, logo = detect_platform(entry['link'])
+                    date_str = entry['date'].strftime('%d/%m/%Y')
+                    
+                    # Clean title for table
+                    clean_title = re.sub(r'[|]', '-', entry['title'])
+                    
+                    content_lines.append(f"| {logo} {platform} | [{clean_title}]({entry['link']}) | {date_str} |")
                 except Exception as e:
                     print(f"Error formatting entry: {e}")
-                    content_lines.append(f"- [{entry['title']}]({entry['link']})")
+                    continue
+            
             new_content = '\n'.join(content_lines) + '\n'
         else:
-            new_content = "- No recent articles available\n"
+            new_content = "| Platform | Title | Date |\n|----------|-------|------|\n| 📝 Blog | No recent articles available | - |\n"
         
         print(f"Generated content:\n{new_content}")
         
         # Define explicit markers
-        START_MARKER = '<!-- SECTION:RECENT_POSTS_START -->'
-        END_MARKER = '<!-- SECTION:RECENT_POSTS_END -->'
+        START_MARKER = '<!-- LATEST_ARTICLES_START -->'
+        END_MARKER = '<!-- LATEST_ARTICLES_END -->'
         
-        # Update README.md only (README.en.md has been deleted)
+        # Update README.md
         readme_file = 'README.md'
         try:
             with open(readme_file, 'r', encoding='utf-8') as f:
@@ -159,10 +306,16 @@ jobs:
             
             # Check if markers exist
             if START_MARKER not in content:
-                print(f"Warning: Start marker not found in {readme_file}")
-                print("Available content preview:", content[:500])
-            if END_MARKER not in content:
-                print(f"Warning: End marker not found in {readme_file}")
+                # Add markers after the Latest Articles header
+                articles_header = '## 📝 Latest Articles'
+                if articles_header in content:
+                    content = content.replace(
+                        articles_header,
+                        f'{articles_header}\n\n{START_MARKER}\n{END_MARKER}'
+                    )
+                    print("Added markers to README.md")
+                else:
+                    print(f"Warning: Could not find '{articles_header}' header in README.md")
             
             # Replace content between markers
             pattern = f'{re.escape(START_MARKER)}.*?{re.escape(END_MARKER)}'
@@ -195,6 +348,6 @@ jobs:
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
-          git commit -m "Update recent posts - $(date '+%Y-%m-%d %H:%M:%S')"
+          git commit -m "feat(workflow): tolerant RSS + HTML fallback (Substack) and unified table output"
           git push
         fi
