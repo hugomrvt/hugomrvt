@@ -17,6 +17,7 @@
 - **[Not A Robot Design](https://github.com/hugomrvt/not-a-robot-design)** - Captcha challenge for Designer
 
 ## 📝 Latest Articles
+
 <!-- SECTION:RECENT_POSTS_START -->
 - No recent articles available
 <!-- SECTION:RECENT_POSTS_END -->
