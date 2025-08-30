@@ -26,12 +26,6 @@
 | <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com" width="20" height="20" /> Medium | [Hello i’m](https://hugomrvt.medium.com/hello-im-b689b1475184?source=rss-1d7eddbc4946------2) | 16/07/2014 |
 <!-- LATEST_ARTICLES_END -->
 
-<!-- SECTION:RECENT_POSTS_START -->
-- [The adoption of design systems: beyond code — a matter of documentation, tools, and business…](https://www.designsystemscollective.com/the-adoption-of-design-systems-beyond-code-a-matter-of-documentation-tools-and-business-48dcbd0420f4?source=rss-1d7eddbc4946------2) - July 27, 2025
-- [The future of design roles, takeaways into the World Economic Forum — Future of jobs report 2025](https://hugomrvt.medium.com/the-future-of-design-roles-takeaways-into-the-wef-future-of-jobs-report-2025-af1b2f07716c?source=rss-1d7eddbc4946------2) - January 13, 2025
-- [Hello i’m](https://hugomrvt.medium.com/hello-im-b689b1475184?source=rss-1d7eddbc4946------2) - July 16, 2014
-<!-- SECTION:RECENT_POSTS_END -->
-
 ## Tech Stack
 
 ![TypeScript](https://img.shields.io/badge/-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white) ![React](https://img.shields.io/badge/-React-61DAFB?style=flat-square&logo=react&logoColor=black) ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black) ![HTML5](https://img.shields.io/badge/-HTML5-E34F26?style=flat-square&logo=html5&logoColor=white) ![CSS3](https://img.shields.io/badge/-CSS3-1572B6?style=flat-square&logo=css3&logoColor=white) ![Figma](https://img.shields.io/badge/-Figma-F24E1E?style=flat-square&logo=figma&logoColor=white)
