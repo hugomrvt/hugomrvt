@@ -15,12 +15,6 @@
 - **[Not A Robot Design](https://github.com/hugomrvt/not-a-robot-design)** - Captcha challenge for Designer
 
 ## 📝 Latest Articles
-
-<!-- BLOG-POST-LIST:START -->
-| | Title | Date |
-|----------|-------|------|
-| 📝 Blog | No recent articles available | - |
-<!-- BLOG-POST-LIST:END -->
 <!-- LATEST_ARTICLES_START -->
 | Platform | Title | Date |
 |----------|-------|------|
