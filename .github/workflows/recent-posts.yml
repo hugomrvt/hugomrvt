@@ -13,7 +13,7 @@ jobs:
   update-posts:
     runs-on: ubuntu-latest
     env:
-      SUBSTACK_PUBLICATION: genairadar
+      SUBSTACK_PUBLICATION: genairadar   # <- change if needed
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -56,17 +56,25 @@ jobs:
 
           FEED_SOURCES = [
               STORIES_BASE,        # will try /feed then /rss
-              SUBSTACK_FEED,       # native Substack RSS feed
+              SUBSTACK_FEED,       # native Substack RSS feed (fallback B)
           ]
 
           CACHE_FILE = ".posts_cache.json"
 
+          # Browser-like headers to avoid anti-bot heuristics
           BROWSER_HEADERS = {
               "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                              "AppleWebKit/537.36 (KHTML, like Gecko) "
                              "Chrome/120.0.0.0 Safari/537.36"),
               "Accept": "application/rss+xml,text/xml;q=0.9,*/*;q=0.8",
               "Accept-Language": "en-US,en;q=0.9,fr;q=0.8",
+              "Connection": "close",
+          }
+
+          JSON_HEADERS = {
+              **BROWSER_HEADERS,
+              "Accept": "application/json",
+              "Referer": SUBSTACK_BASE + "/archive",
           }
 
           # ----------------------------
@@ -145,23 +153,81 @@ jobs:
                   return 'Blog', '📝'
 
           # ----------------------------
-          # fetch RSS using a browser-like UA + retry/backoff
+          # http helpers (retry/backoff)
           # ----------------------------
-          def parse_feed_with_requests(url, max_retries=3):
+          def get_with_retry(url, headers, params=None, max_retries=3, timeout=20):
               for attempt in range(max_retries):
-                  r = requests.get(url, headers=BROWSER_HEADERS, timeout=20)
+                  r = requests.get(url, headers=headers, params=params, timeout=timeout)
                   if r.status_code == 429:
                       wait = 2 ** attempt
-                      print(f"Received 429, retrying after {wait}s...")
+                      print(f"Received 429 from {url}, retrying after {wait}s...")
                       time.sleep(wait)
                       continue
                   if r.status_code == 403:
                       print(f"Access forbidden for {url}")
                       return None
                   if r.status_code != 200:
-                      raise RuntimeError(f"Feed HTTP {r.status_code} for {url}")
-                  return feedparser.parse(r.content)
+                      raise RuntimeError(f"HTTP {r.status_code} for {url}")
+                  return r
               return None
+
+          # ----------------------------
+          # plan A: Substack JSON archive API (robust source)
+          # ----------------------------
+          def fetch_substack_archive_api(publication, limit=10):
+              api = f"https://{publication}.substack.com/api/v1/archive"
+              params = {"sort": "new", "offset": 0, "limit": limit}
+              r = get_with_retry(api, JSON_HEADERS, params=params)
+              if r is None:
+                  return []
+              try:
+                  data = r.json()
+              except Exception as e:
+                  print(f"JSON parse error on archive API: {e}")
+                  return []
+
+              entries = []
+              for item in data:
+                  try:
+                      # URL resolution: prefer canonical_url, else url, else build from slug
+                      url = (item.get("canonical_url")
+                             or item.get("url")
+                             or (f"https://{publication}.substack.com/p/{item.get('slug')}" if item.get("slug") else None))
+                      if not url:
+                          continue
+
+                      # title resolution: multiple possible keys across deployments
+                      title = item.get("title") or item.get("post_title") or item.get("name") or "No title"
+
+                      # date resolution
+                      date_str = (item.get("post_date") or item.get("published_at")
+                                  or item.get("created_at") or item.get("release_date"))
+                      try:
+                          dt = ensure_aware(date_parser.parse(date_str)) if isinstance(date_str, str) else datetime.now(timezone.utc)
+                      except Exception:
+                          dt = datetime.now(timezone.utc)
+
+                      entries.append({
+                          "title": title,
+                          "link": url,
+                          "date": dt,
+                          "source": api
+                      })
+                  except Exception as e:
+                      print(f"Error on archive item: {e}")
+                      continue
+
+              print(f"Archive API returned {len(entries)} entries")
+              return entries
+
+          # ----------------------------
+          # plan B: RSS using a browser-like UA
+          # ----------------------------
+          def parse_feed_with_requests(url):
+              r = get_with_retry(url, BROWSER_HEADERS)
+              if r is None:
+                  return None
+              return feedparser.parse(r.content)
 
           def fetch_feed_entries(url, use_fallback=False, base_for_fallback=None):
               try:
@@ -210,82 +276,84 @@ jobs:
                   return []
 
           # ----------------------------
-          # substack archive fallback
+          # plan C: Substack archive HTML fallback
           # ----------------------------
           def scrape_substack_archive(base_url):
               archive_url = urljoin(base_url if base_url.endswith("/") else base_url + "/", "archive")
               print(f"Fallback: scraping Substack archive {archive_url}")
-              try:
-                  headers = {
-                      **BROWSER_HEADERS,
-                      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                      "Referer": "https://www.google.com/",
-                      "Cache-Control": "no-cache",
-                  }
-                  r = requests.get(archive_url, headers=headers, timeout=20)
-                  if r.status_code != 200:
-                      print(f"Archive request failed with {r.status_code}")
-                      return []
-
-                  soup = BeautifulSoup(r.content, "html.parser")
-                  links = soup.select('a[href^="/p/"]')
-                  seen = set()
-                  entries = []
-                  for a in links:
-                      href = a.get("href", "")
-                      title = a.get_text(strip=True)
-                      if not href or "/p/" not in href:
-                          continue
-                      abs_url = urljoin(base_url, href)
-                      if abs_url in seen:
-                          continue
-                      seen.add(abs_url)
-                      if title:
-                          entries.append({
-                              "title": title,
-                              "link": abs_url,
-                              "date": datetime.now(timezone.utc),  # archive pages don't expose reliable dates
-                              "source": archive_url
-                          })
-                      if len(entries) >= 5:
-                          break
-                  print(f"Scraped {len(entries)} entries from archive")
-                  return entries
-              except Exception as e:
-                  print(f"Error scraping Substack archive: {e}")
+              headers = {
+                  **BROWSER_HEADERS,
+                  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                  "Referer": "https://www.google.com/",
+                  "Cache-Control": "no-cache",
+              }
+              r = get_with_retry(archive_url, headers)
+              if r is None:
                   return []
 
+              soup = BeautifulSoup(r.content, "html.parser")
+              # Substack archive pages use anchors to /p/{slug}
+              links = soup.select('a[href^="/p/"]')
+              seen = set()
+              entries = []
+              for a in links:
+                  href = a.get("href", "")
+                  title = a.get_text(strip=True)
+                  if not href or "/p/" not in href:
+                      continue
+                  abs_url = urljoin(base_url, href)
+                  if abs_url in seen:
+                      continue
+                  seen.add(abs_url)
+                  if title:
+                      entries.append({
+                          "title": title,
+                          "link": abs_url,
+                          "date": datetime.now(timezone.utc),  # archive doesn't expose reliable dates
+                          "source": archive_url
+                      })
+                  if len(entries) >= 10:
+                      break
+              print(f"Scraped {len(entries)} entries from archive")
+              return entries
+
           # ----------------------------
-          # source orchestration
+          # orchestration
           # ----------------------------
-          def try_multiple_feed_urls(base_urls):
+          def try_multiple_feed_urls():
               all_entries = []
-              for base in base_urls:
-                  if base == STORIES_BASE:
-                      # try both endpoints for WordPress-like feeds
-                      for feed_url in (f"https://{STORIES_BASE}/feed", f"https://{STORIES_BASE}/rss"):
-                          e = fetch_feed_entries(feed_url, use_fallback=False)
-                          if e:
-                              all_entries.extend(e)
-                              break
-                  elif "substack.com" in base:
-                      e = fetch_feed_entries(base, use_fallback=True, base_for_fallback=SUBSTACK_BASE)
-                      all_entries.extend(e)
+
+              # Substack: try JSON API (most reliable), then RSS, then HTML
+              substack_json_entries = fetch_substack_archive_api(SUBSTACK_PUBLICATION, limit=10)
+              if substack_json_entries:
+                  all_entries.extend(substack_json_entries)
+              else:
+                  # RSS then HTML as fallbacks
+                  rss_entries = fetch_feed_entries(SUBSTACK_FEED, use_fallback=False)
+                  if rss_entries:
+                      all_entries.extend(rss_entries)
                   else:
-                      e = fetch_feed_entries(base, use_fallback=False)
+                      html_entries = scrape_substack_archive(SUBSTACK_BASE)
+                      all_entries.extend(html_entries)
+
+              # Stories/Medium-like source
+              for feed_url in (f"https://{STORIES_BASE}/feed", f"https://{STORIES_BASE}/rss"):
+                  e = fetch_feed_entries(feed_url, use_fallback=False)
+                  if e:
                       all_entries.extend(e)
+                      break
+
               return all_entries
 
           # ----------------------------
           # fetch entries
           # ----------------------------
-          all_entries = try_multiple_feed_urls(FEED_SOURCES)
+          all_entries = try_multiple_feed_urls()
           print(f"Total entries fetched: {len(all_entries)}")
 
           # if nothing found, exit gracefully
           if not all_entries:
               print("No entries from any source; skipping README update.")
-              # ensure cache exists before exit
               if not os.path.exists(CACHE_FILE):
                   save_cache({"known_links": {}, "seen_order": []})
               sys.exit(0)
@@ -306,7 +374,6 @@ jobs:
 
           if not new_links:
               print("No new posts detected; skipping README update.")
-              # ensure cache exists before exit
               if not os.path.exists(CACHE_FILE):
                   save_cache({"known_links": {}, "seen_order": []})
               sys.exit(0)
@@ -395,9 +462,7 @@ jobs:
           else:
               print("README content is unchanged.")
 
-          # ----------------------------
           # ensure cache file always exists
-          # ----------------------------
           if not os.path.exists(CACHE_FILE):
               save_cache({"known_links": {}, "seen_order": []})
 
