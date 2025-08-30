@@ -16,6 +16,12 @@
 
 ## 📝 Latest Articles
 <!-- LATEST_ARTICLES_START -->
+| Platform | Title | Date |
+|----------|-------|------|
+| <img alt="Substack" src="https://www.google.com/s2/favicons?domain=substack.com&sz=20" height="20" width="20"/> Substack | [The Design Leaders Dilemma That Sparked](https://genairadar.substack.com/p/the-design-leaders-dilemma-that-sparked) | 30/08/2025 |
+| <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [The adoption of design systems: beyond code — a matter of documentation, tools, and business…](https://www.designsystemscollective.com/the-adoption-of-design-systems-beyond-code-a-matter-of-documentation-tools-and-business-48dcbd0420f4?source=rss-1d7eddbc4946------2) | 27/07/2025 |
+| <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [The future of design roles, takeaways into the World Economic Forum — Future of jobs report 2025](https://hugomrvt.medium.com/the-future-of-design-roles-takeaways-into-the-wef-future-of-jobs-report-2025-af1b2f07716c?source=rss-1d7eddbc4946------2) | 13/01/2025 |
+| <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [Hello i’m](https://hugomrvt.medium.com/hello-im-b689b1475184?source=rss-1d7eddbc4946------2) | 16/07/2014 |
 <!-- LATEST_ARTICLES_END -->
 
 ## Tech Stack
