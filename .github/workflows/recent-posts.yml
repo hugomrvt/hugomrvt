@@ -39,6 +39,7 @@ jobs:
           import os
           import sys
           import json
+          import time
           import calendar
           from datetime import datetime, timezone
           from dateutil import parser as date_parser
@@ -144,18 +145,34 @@ jobs:
                   return 'Blog', '📝'
 
           # ----------------------------
-          # fetch RSS using a browser-like UA
+          # fetch RSS using a browser-like UA + retry/backoff
           # ----------------------------
-          def parse_feed_with_requests(url):
-              r = requests.get(url, headers=BROWSER_HEADERS, timeout=20)
-              if r.status_code != 200:
-                  raise RuntimeError(f"Feed HTTP {r.status_code} for {url}")
-              return feedparser.parse(r.content)
+          def parse_feed_with_requests(url, max_retries=3):
+              for attempt in range(max_retries):
+                  r = requests.get(url, headers=BROWSER_HEADERS, timeout=20)
+                  if r.status_code == 429:
+                      wait = 2 ** attempt
+                      print(f"Received 429, retrying after {wait}s...")
+                      time.sleep(wait)
+                      continue
+                  if r.status_code == 403:
+                      print(f"Access forbidden for {url}")
+                      return None
+                  if r.status_code != 200:
+                      raise RuntimeError(f"Feed HTTP {r.status_code} for {url}")
+                  return feedparser.parse(r.content)
+              return None
 
           def fetch_feed_entries(url, use_fallback=False, base_for_fallback=None):
               try:
                   print(f"Fetching feed: {url}")
                   feed = parse_feed_with_requests(url)
+                  if feed is None:
+                      print(f"Feed is None for {url}")
+                      if use_fallback and base_for_fallback:
+                          return scrape_substack_archive(base_for_fallback)
+                      return []
+
                   if getattr(feed, "bozo", 0):
                       print(f"RSS issues detected for {url}: {getattr(feed, 'bozo_exception', '')}")
                       if use_fallback and base_for_fallback:
@@ -268,6 +285,9 @@ jobs:
           # if nothing found, exit gracefully
           if not all_entries:
               print("No entries from any source; skipping README update.")
+              # ensure cache exists before exit
+              if not os.path.exists(CACHE_FILE):
+                  save_cache({"known_links": {}, "seen_order": []})
               sys.exit(0)
 
           # sort by date (newest first)
@@ -286,6 +306,9 @@ jobs:
 
           if not new_links:
               print("No new posts detected; skipping README update.")
+              # ensure cache exists before exit
+              if not os.path.exists(CACHE_FILE):
+                  save_cache({"known_links": {}, "seen_order": []})
               sys.exit(0)
 
           # update cache with new links
@@ -372,17 +395,24 @@ jobs:
           else:
               print("README content is unchanged.")
 
+          # ----------------------------
+          # ensure cache file always exists
+          # ----------------------------
+          if not os.path.exists(CACHE_FILE):
+              save_cache({"known_links": {}, "seen_order": []})
+
           EOF
 
       - name: Commit changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add README.md .posts_cache.json || true
+          git add README.md
+          [ -f .posts_cache.json ] && git add .posts_cache.json
 
           if git diff --staged --quiet; then
             echo "No changes to commit"
-          else:
+          else
             git commit -m "chore: update recent posts"
             git push
           fi
