@@ -19,7 +19,7 @@
 ## 📝 Latest Articles
 
 <!-- SECTION:RECENT_POSTS_START -->
-<!-- This section is automatically updated by GitHub Actions -->
+- No recent articles available
 <!-- SECTION:RECENT_POSTS_END -->
 
 ## Tech Stack
