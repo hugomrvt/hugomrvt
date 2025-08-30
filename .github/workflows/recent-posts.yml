@@ -18,6 +18,8 @@ jobs:
       # change these two if your README uses different markers
       START_MARKER: '<!-- LATEST_ARTICLES_START -->'
       END_MARKER: '<!-- LATEST_ARTICLES_END -->'
+      # OPTIONAL: set to "1" once to force a refresh even if no new links are detected
+      # FORCE_README_REFRESH: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -414,11 +416,15 @@ jobs:
               if k not in known:
                   new_links.append(k)
 
-          if not new_links:
+          # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+          # FORCE REFRESH BLOCK (added)
+          force = os.getenv("FORCE_README_REFRESH") == "1"
+          if not new_links and not force:
               print("No new posts detected; skipping README update.")
               if not os.path.exists(CACHE_FILE):
                   save_cache({"known_links": {}, "seen_order": []})
               sys.exit(0)
+          # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
           # update cache
           for e in all_entries:
@@ -512,7 +518,7 @@ jobs:
 
           if git diff --staged --quiet; then
             echo "No changes to commit"
-          else:
+          else
             git commit -m "chore: update recent posts"
             git push
           fi
