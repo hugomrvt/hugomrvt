@@ -454,7 +454,7 @@ jobs:
           # ----------------------------
           if top_entries:
               content_lines = [
-                  "| Platform | Title | Date |",
+                  "|  | Title | Date |",
                   "|----------|-------|------|"
               ]
               for entry in top_entries:
@@ -468,7 +468,7 @@ jobs:
                       continue
               new_content = '\n'.join(content_lines) + '\n'
           else:
-              new_content = "| Platform | Title | Date |\n|----------|-------|------|\n| 📝 Blog | No recent articles available | - |\n"
+              new_content = "|  | Title | Date |\n|----------|-------|------|\n| 📝 Blog | No recent articles available | - |\n"
 
           print("Generated content:\n" + new_content)
 
