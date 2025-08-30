@@ -69,11 +69,11 @@ jobs:
             return datetime.now(timezone.utc)
         
         def detect_platform_logo(url):
-            """Detect platform from URL and return logo HTML"""
+            """Detect platform from URL and return logo HTML with seeklogo.com URLs"""
             if 'medium.com' in url.lower():
-                return 'Medium', '<img src="https://seeklogo.com/images/M/medium-logo-F6BAFE7A6B-seeklogo.com.png" width="20" height="20" alt="Medium">'
+                return 'Medium', '<img alt="Medium" src="https://seeklogo.com/images/M/medium-logo-F6645278AE-seeklogo.com.png" height="20" width="20"/>'
             elif 'substack.com' in url.lower():
-                return 'Substack', '<img src="https://seeklogo.com/images/S/substack-logo-AE5EF3A7D5-seeklogo.com.png" width="20" height="20" alt="Substack">'
+                return 'Substack', '<img alt="Substack" src="https://seeklogo.com/images/S/substack-logo-0B39D0A4BB-seeklogo.com.png" height="20" width="20"/>'
             else:
                 return 'Blog', '📝'
         
@@ -344,6 +344,6 @@ jobs:
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
-          git commit -m "feat(workflow): Substack archive fallback + logo table rendering (top-5)"
+          git commit -m "feat(workflow): Substack archive fallback + logo table rendering with seeklogo.com (top-5)"
           git push
         fi
