@@ -454,7 +454,7 @@ jobs:
           # ----------------------------
           if top_entries:
               content_lines = [
-                  "| Platform | Title | Date |",
+                  "|  | Title | Date |",
                   "|----------|-------|------|"
               ]
               for entry in top_entries:
