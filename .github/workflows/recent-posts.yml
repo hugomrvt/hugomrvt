@@ -1,0 +1,127 @@
+name: Update Recent Posts
+
+on:
+  schedule:
+    # Run twice daily at 6:00 AM and 6:00 PM UTC
+    - cron: '0 6,18 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+
+jobs:
+  update-posts:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install feedparser requests
+        
+    - name: Update README with recent posts
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python << 'EOF'
+        import feedparser
+        import re
+        from datetime import datetime
+        import os
+        
+        def fetch_feed_entries(url):
+            """Fetch entries from RSS feed"""
+            try:
+                feed = feedparser.parse(url)
+                entries = []
+                for entry in feed.entries:
+                    # Parse publication date
+                    pub_date = None
+                    if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                        pub_date = datetime(*entry.published_parsed[:6])
+                    elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
+                        pub_date = datetime(*entry.updated_parsed[:6])
+                    
+                    entries.append({
+                        'title': entry.title,
+                        'link': entry.link,
+                        'date': pub_date,
+                        'source': url
+                    })
+                return entries
+            except Exception as e:
+                print(f"Error fetching {url}: {e}")
+                return []
+        
+        # RSS feed URLs
+        FEED_URLS = [
+            'https://stories.mrvt.io/rss',
+            'https://genairadar.substack.com/feed'
+        ]
+        
+        # Fetch all entries
+        all_entries = []
+        for url in FEED_URLS:
+            entries = fetch_feed_entries(url)
+            all_entries.extend(entries)
+        
+        # Sort by date (newest first) and take top 5
+        all_entries = [e for e in all_entries if e['date']]  # Filter out entries without dates
+        all_entries.sort(key=lambda x: x['date'], reverse=True)
+        top_entries = all_entries[:5]
+        
+        # Generate markdown content
+        if top_entries:
+            content_lines = []
+            for entry in top_entries:
+                date_str = entry['date'].strftime('%B %d, %Y')
+                content_lines.append(f"- [{entry['title']}]({entry['link']}) - {date_str}")
+            new_content = '\n'.join(content_lines) + '\n'
+        else:
+            new_content = "- No recent articles available\n"
+        
+        # Update both README files
+        for readme_file in ['README.md', 'README.en.md']:
+            try:
+                with open(readme_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Replace content between markers
+                start_marker = '<!-- SECTION:RECENT_POSTS_START -->'
+                end_marker = '<!-- SECTION:RECENT_POSTS_END -->'
+                
+                pattern = f'{re.escape(start_marker)}.*?{re.escape(end_marker)}'
+                replacement = f'{start_marker}\n{new_content}{end_marker}'
+                
+                updated_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+                
+                with open(readme_file, 'w', encoding='utf-8') as f:
+                    f.write(updated_content)
+                    
+                print(f"Updated {readme_file}")
+                
+            except FileNotFoundError:
+                print(f"File {readme_file} not found")
+            except Exception as e:
+                print(f"Error updating {readme_file}: {e}")
+        
+        EOF
+        
+    - name: Commit changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add README.md README.en.md
+        
+        # Only commit if there are changes
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Update recent posts - $(date '+%Y-%m-%d %H:%M:%S')"
+          git push
+        fi
