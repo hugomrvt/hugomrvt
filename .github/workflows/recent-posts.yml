@@ -108,7 +108,7 @@ jobs:
         
         # RSS feed URLs - explicitly verify these URLs
         FEED_URLS = [
-            'https://stories.mrvt.io/rss',
+            'https://stories.mrvt.io/feed',
             'https://genairadar.substack.com/feed'
         ]
         
