@@ -1,5 +1,4 @@
 name: Update Recent Posts
-
 on:
   schedule:
     # Run twice daily at 6:00 AM and 6:00 PM UTC
@@ -22,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install feedparser requests
+        pip install feedparser requests python-dateutil
         
     - name: Update README with recent posts
       env:
@@ -31,34 +30,83 @@ jobs:
         python << 'EOF'
         import feedparser
         import re
-        from datetime import datetime
+        from datetime import datetime, timezone
+        from dateutil import parser as date_parser
         import os
         
+        def parse_date_flexible(entry):
+            """Parse date from RSS entry with multiple fallbacks"""
+            # Try different date fields and formats
+            date_fields = ['published', 'updated', 'created', 'pubDate']
+            parsed_fields = ['published_parsed', 'updated_parsed']
+            
+            # First try parsed fields
+            for field in parsed_fields:
+                if hasattr(entry, field) and getattr(entry, field):
+                    try:
+                        parsed_time = getattr(entry, field)
+                        if parsed_time and len(parsed_time) >= 6:
+                            return datetime(*parsed_time[:6], tzinfo=timezone.utc)
+                    except Exception as e:
+                        print(f"Error parsing {field}: {e}")
+                        continue
+            
+            # Then try string date fields with dateutil parser
+            for field in date_fields:
+                if hasattr(entry, field) and getattr(entry, field):
+                    try:
+                        date_str = getattr(entry, field)
+                        if isinstance(date_str, str):
+                            return date_parser.parse(date_str)
+                    except Exception as e:
+                        print(f"Error parsing {field} string: {e}")
+                        continue
+            
+            # Final fallback - use current time for entries without dates
+            print(f"No valid date found for entry: {entry.get('title', 'Unknown')}, using current time")
+            return datetime.now(timezone.utc)
+        
         def fetch_feed_entries(url):
-            """Fetch entries from RSS feed"""
+            """Fetch entries from RSS feed with improved error handling"""
             try:
+                print(f"Fetching feed: {url}")
                 feed = feedparser.parse(url)
+                
+                if feed.bozo:
+                    print(f"Warning: Feed {url} has parsing issues: {feed.bozo_exception}")
+                
+                if not hasattr(feed, 'entries') or not feed.entries:
+                    print(f"No entries found in feed: {url}")
+                    return []
+                
                 entries = []
-                for entry in feed.entries:
-                    # Parse publication date
-                    pub_date = None
-                    if hasattr(entry, 'published_parsed') and entry.published_parsed:
-                        pub_date = datetime(*entry.published_parsed[:6])
-                    elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
-                        pub_date = datetime(*entry.updated_parsed[:6])
-                    
-                    entries.append({
-                        'title': entry.title,
-                        'link': entry.link,
-                        'date': pub_date,
-                        'source': url
-                    })
+                for entry in feed.entries[:10]:  # Limit to first 10 entries
+                    try:
+                        pub_date = parse_date_flexible(entry)
+                        
+                        title = entry.get('title', 'No title')
+                        link = entry.get('link', '')
+                        
+                        if link:  # Only add entries with valid links
+                            entries.append({
+                                'title': title,
+                                'link': link,
+                                'date': pub_date,
+                                'source': url
+                            })
+                            print(f"Added entry: {title} - {pub_date}")
+                    except Exception as e:
+                        print(f"Error processing entry: {e}")
+                        continue
+                        
+                print(f"Successfully fetched {len(entries)} entries from {url}")
                 return entries
+                
             except Exception as e:
                 print(f"Error fetching {url}: {e}")
                 return []
         
-        # RSS feed URLs
+        # RSS feed URLs - explicitly verify these URLs
         FEED_URLS = [
             'https://stories.mrvt.io/rss',
             'https://genairadar.substack.com/feed'
@@ -70,45 +118,70 @@ jobs:
             entries = fetch_feed_entries(url)
             all_entries.extend(entries)
         
+        print(f"Total entries fetched: {len(all_entries)}")
+        
         # Sort by date (newest first) and take top 5
-        all_entries = [e for e in all_entries if e['date']]  # Filter out entries without dates
-        all_entries.sort(key=lambda x: x['date'], reverse=True)
-        top_entries = all_entries[:5]
+        if all_entries:
+            all_entries.sort(key=lambda x: x['date'], reverse=True)
+            top_entries = all_entries[:5]
+        else:
+            top_entries = []
+        
+        print(f"Top {len(top_entries)} entries selected")
         
         # Generate markdown content
         if top_entries:
             content_lines = []
             for entry in top_entries:
-                date_str = entry['date'].strftime('%B %d, %Y')
-                content_lines.append(f"- [{entry['title']}]({entry['link']}) - {date_str}")
+                try:
+                    date_str = entry['date'].strftime('%B %d, %Y')
+                    content_lines.append(f"- [{entry['title']}]({entry['link']}) - {date_str}")
+                except Exception as e:
+                    print(f"Error formatting entry: {e}")
+                    content_lines.append(f"- [{entry['title']}]({entry['link']})")
             new_content = '\n'.join(content_lines) + '\n'
         else:
             new_content = "- No recent articles available\n"
         
-        # Update both README files
-        for readme_file in ['README.md', 'README.en.md']:
-            try:
-                with open(readme_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
+        print(f"Generated content:\n{new_content}")
+        
+        # Define explicit markers
+        START_MARKER = '<!-- SECTION:RECENT_POSTS_START -->'
+        END_MARKER = '<!-- SECTION:RECENT_POSTS_END -->'
+        
+        # Update README.md only (README.en.md has been deleted)
+        readme_file = 'README.md'
+        try:
+            with open(readme_file, 'r', encoding='utf-8') as f:
+                content = f.read()
                 
-                # Replace content between markers
-                start_marker = '<!-- SECTION:RECENT_POSTS_START -->'
-                end_marker = '<!-- SECTION:RECENT_POSTS_END -->'
-                
-                pattern = f'{re.escape(start_marker)}.*?{re.escape(end_marker)}'
-                replacement = f'{start_marker}\n{new_content}{end_marker}'
-                
-                updated_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
-                
+            print(f"Original README.md length: {len(content)} characters")
+            
+            # Check if markers exist
+            if START_MARKER not in content:
+                print(f"Warning: Start marker not found in {readme_file}")
+                print("Available content preview:", content[:500])
+            if END_MARKER not in content:
+                print(f"Warning: End marker not found in {readme_file}")
+            
+            # Replace content between markers
+            pattern = f'{re.escape(START_MARKER)}.*?{re.escape(END_MARKER)}'
+            replacement = f'{START_MARKER}\n{new_content}{END_MARKER}'
+            
+            updated_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+            
+            if updated_content != content:
                 with open(readme_file, 'w', encoding='utf-8') as f:
                     f.write(updated_content)
-                    
-                print(f"Updated {readme_file}")
+                print(f"Successfully updated {readme_file}")
+                print(f"Updated README.md length: {len(updated_content)} characters")
+            else:
+                print(f"No changes needed for {readme_file}")
                 
-            except FileNotFoundError:
-                print(f"File {readme_file} not found")
-            except Exception as e:
-                print(f"Error updating {readme_file}: {e}")
+        except FileNotFoundError:
+            print(f"File {readme_file} not found")
+        except Exception as e:
+            print(f"Error updating {readme_file}: {e}")
         
         EOF
         
@@ -116,7 +189,7 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add README.md README.en.md
+        git add README.md
         
         # Only commit if there are changes
         if git diff --staged --quiet; then
