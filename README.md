@@ -1,7 +1,7 @@
 # Hugo Mourlevat
 **Chief Design Officer at [Michelin](https://github.com/michelin) & (AI) Product Builder**
 
-👋🏽 Welcome to my GitHub profile! I'm a passionate Design Technologist who ships code and explores GenAI possibilities, creating meaningful digital experiences that blend human-centered design with artificial intelligence to solve real-world problems.
+> 👋🏽 Welcome to my GitHub profile! I'm a passionate Design Technologist who ships code and explores GenAI possibilities, creating meaningful digital experiences that blend human-centered design with artificial intelligence to solve real-world problems.
 
 ## What I Do
 - 🤖 **AI-Enhanced Design Leadership**: Scaling design teams at Michelin through GenAI workflows and intelligent tool sourcing
@@ -14,7 +14,7 @@
 - **[MRVT TimeSpot](https://github.com/hugomrvt/mrvt-timespot)** - Modern world clock with real-time updates
 - **[Not A Robot Design](https://github.com/hugomrvt/not-a-robot-design)** - Captcha challenge for Designer
 
-## 📝 Latest Articles
+## ✦ Latest Articles
 <!-- LATEST_ARTICLES_START -->
 |  | Title | Date |
 |----------|-------|------|
@@ -27,14 +27,14 @@
 ## Tech Stack
 ![TypeScript](https://img.shields.io/badge/-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white) ![React](https://img.shields.io/badge/-React-61DAFB?style=flat-square&logo=react&logoColor=black) ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black) ![HTML5](https://img.shields.io/badge/-HTML5-E34F26?style=flat-square&logo=html5&logoColor=white) ![CSS3](https://img.shields.io/badge/-CSS3-1572B6?style=flat-square&logo=css3&logoColor=white) ![Figma](https://img.shields.io/badge/-Figma-F24E1E?style=flat-square&logo=figma&logoColor=white)
 
-## 🌍 Connect With Me
-- **Website**: [hugo.mourlev.at](https://hugo.mourlev.at/)
+## ✦ Connect With Me
+- **Website**: [👨🏾‍💻.to](https://xn--pn8htg0i.to)
 - **Stories**: [stories.mrvt.io](https://stories.mrvt.io/) — Thoughts and experiences on Design Leadership, Design Systems, AI for Designer
 - **GenAI Radar**: [genairadar.substack.com](https://genairadar.substack.com/) — Exploration & Knowledge sharing about GenAI & Tools
 - **Twitter/X**: [@hugomrvt](https://twitter.com/hugomrvt)
 - **Location**: Lyon, France 🇫🇷
 
-## 📊 GitHub Stats
+## ✦ GitHub Stats
 ![GitHub Stats](https://github-readme-stats.vercel.app/api?username=hugomrvt&show_icons=true&theme=dark)
 
 ---
