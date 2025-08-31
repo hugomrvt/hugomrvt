@@ -29,8 +29,8 @@
 
 ## 🌍 Connect With Me
 - **Website**: [hugo.mourlev.at](https://hugo.mourlev.at/)
-- **Stories**: [stories.mrvt.io](https://stories.mrvt.io/) - My thoughts and experiences on design and AI
-- **GenAI Radar**: [genairadar.substack.com](https://genairadar.substack.com/) - My newsletter on generative AI news
+- **Stories**: [stories.mrvt.io](https://stories.mrvt.io/) — Thoughts and experiences on Design Leadership, Design Systems, AI for Designer
+- **GenAI Radar**: [genairadar.substack.com](https://genairadar.substack.com/) — Exploration & Knowledge sharing about GenAI & Tools
 - **Twitter/X**: [@hugomrvt](https://twitter.com/hugomrvt)
 - **Location**: Lyon, France 🇫🇷
 
