@@ -1,15 +1,16 @@
 # Hugo Mourlevat
 **Chief Design Officer at [Michelin](https://github.com/michelin) & (AI) Product Builder**
 
-> 👋🏽 Welcome to my GitHub profile! I'm a passionate Design Technologist who ships code and explores GenAI possibilities, creating meaningful digital experiences that blend human-centered design with artificial intelligence to solve real-world problems.
+> 👋🏽 Welcome to my GitHub profile! I'm a passionate (AI) Product Builder & Design Experience leader who ships projects and explores GenAI possibilities, creating meaningful digital experiences that blend human-centered design with artificial intelligence to solve real-world problems.
 
 ## What i do
 - 🤖 **AI-Enhanced Design Leadership**: Scaling design teams at Michelin through GenAI workflows and intelligent tool sourcing
-- ⚡ **Generative Product Development**: Building next-gen applications that blend traditional coding with AI-powered creation
-- 🎨 **Intelligent Design Systems**: Crafting scalable experiences using AI-generated components and automated design tokens
-- 🚀 **AI Product Building Stack**: Lovable, Bolt, v0, Emergent, Figma Make, Cursor, Trae, Github Copilot, Kiro - tools that revolutionize how we ship digital products
+- ⚡ **Generative product development**: Building next-gen applications that blend traditional coding with AI-powered creation
+- 🎨 **Agentic Design Systems**: Crafting scalable experiences using AI-generated components and automated design tokens
+- 🚀 **(AI) Product Building Stack**: **[Up-to-date Stack]([https://github.com/hugomrvt/vacaygen](https://mrvt.link/radar-genAI))** tools that revolutionize how i ship digital products
 
 ## Recent projects
+- **[GenAI Radar](https://genairadar.co)** - GenAI Radar explores how generative AI transforms creative work, with practical analysis and real-world insights from a Design Leader & Crafter.
 - **[VacayGen](https://github.com/hugomrvt/vacaygen)** - AI-powered vacation message generator for professionals
 - **[MRVT TimeSpot](https://github.com/hugomrvt/mrvt-timespot)** - Modern world clock with real-time updates
 - **[Not A Robot Design](https://github.com/hugomrvt/not-a-robot-design)** - Captcha challenge for Designer
