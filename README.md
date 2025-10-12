@@ -18,7 +18,6 @@
 <!-- LATEST_ARTICLES_START -->
 |  | Title | Date |
 |----------|-------|------|
-| <img alt="Loop" src="https://www.google.com/s2/favicons?domain=loop.genairadar.co&sz=20" height="20" width="20"/> Loop | [The Super-App inflection point: How OpenAI is redesigning the digital experience](https://loop.genairadar.co/the-super-app-inflection-point-how-openai-is-redesigning-the-digital-experience-a97495bfd866?source=rss----724c1cd22daf---4) | 09/10/2025 |
 | <img alt="Loop" src="https://www.google.com/s2/favicons?domain=loop.genairadar.co&sz=20" height="20" width="20"/> Loop | [The Super-App inflection point: How OpenAI is redesigning the digital experience](https://loop.genairadar.co/the-super-app-inflection-point-how-openai-is-redesigning-the-digital-experience-a97495bfd866?source=rss-1d7eddbc4946------2) | 09/10/2025 |
 | <img alt="Substack" src="https://www.google.com/s2/favicons?domain=substack.com&sz=20" height="20" width="20"/> Substack | [The design leader’s dilemma that could spark a revolution — Welcome to GenAI Radar](https://genairadar.substack.com/p/the-design-leaders-dilemma-that-sparked) | 01/08/2025 |
 | <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [The adoption of design systems: beyond code — a matter of documentation, tools, and business…](https://www.designsystemscollective.com/the-adoption-of-design-systems-beyond-code-a-matter-of-documentation-tools-and-business-48dcbd0420f4?source=rss-1d7eddbc4946------2) | 27/07/2025 |
