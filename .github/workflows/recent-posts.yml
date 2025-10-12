@@ -119,7 +119,9 @@ jobs:
               u = url.lower()
               if 'loop.genairadar.co' in u:
                   return 'Loop', '<img alt="Loop" src="https://www.google.com/s2/favicons?domain=loop.genairadar.co&sz=20" height="20" width="20"/>'
-              if 'medium.com' in u or 'designsystemscollective.com' in u or 'loop.genairadar.co' in u or 'stories.mrvt.io' in u:
+              if 'loop.genairadar.co' in u:
+                  return 'Loop', '<img alt="Loop" src="https://www.google.com/s2/favicons?domain=loop.genairadar.co&sz=20" height="20" width="20"/>'
+              if 'medium.com' in u or 'designsystemscollective.com' in u or 'loop.genairadar.co' in u or 'stories.mrvt.io' in u or 'loop.genairadar.co' in u:
                   return 'Medium', '<img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/>'
               elif 'substack.com' in u:
                   return 'Substack', '<img alt="Substack" src="https://www.google.com/s2/favicons?domain=substack.com&sz=20" height="20" width="20"/>'
@@ -309,6 +311,11 @@ jobs:
                   e = fetch_feed_entries(loop_url)
                   if e:
                       entries.extend(e)
+              # Loop.genairadar.co
+              for loop_url in ("https://loop.genairadar.co/feed",):
+                  e = fetch_feed_entries(loop_url)
+                  if e:
+                      entries.extend(e)
 
               # dedupe by link key, keep newest date
               dedup = {}
@@ -331,10 +338,10 @@ jobs:
               with open(path, 'w', encoding='utf-8') as f:
                   f.write(content)
 
-          def format_list_item(title, link):
+          def format_table_row(title, link, date):
               platform, logo = detect_platform_logo(link)
-              # add a tiny space to keep layout nice
-              return f"- {logo} <a href=\"{link}\">{title}</a>"
+              date_str = date.strftime('%d/%m/%Y')
+              return f"| {logo} {platform} | [{title}]({link}) | {date_str} |"
 
           def replace_between_markers(content, start_marker, end_marker, new_block):
               start_idx = content.find(start_marker)
@@ -352,10 +359,10 @@ jobs:
               entries = gather_entries()
               latest = entries[:10]
 
-              # format list
-              lines = []
+              # format table
+              lines = ['|  | Title | Date |', '|----------|-------|------|']
               for it in latest:
-                  lines.append(format_list_item(it['title'], it['link']))
+                  lines.append(format_table_row(it['title'], it['link'], it['date']))
               block = "\n".join(lines)
 
               # read and patch README
