@@ -322,6 +322,7 @@ jobs:
               
               # extract values and sort newest first
               sorted_entries = sorted(dedup.values(), key=lambda x: x['date'], reverse=True)
+              return sorted_entries
 
           def read_readme(path='README.md'):
               with open(path, 'r', encoding='utf-8') as f:
