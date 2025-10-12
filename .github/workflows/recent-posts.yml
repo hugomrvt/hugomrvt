@@ -117,11 +117,7 @@ jobs:
           # ----------------------------
           def detect_platform_logo(url):
               u = url.lower()
-              if 'loop.genairadar.co' in u:
-                  return 'Loop', '<img alt="Loop" src="https://www.google.com/s2/favicons?domain=loop.genairadar.co&sz=20" height="20" width="20"/>'
-              if 'loop.genairadar.co' in u:
-                  return 'Loop', '<img alt="Loop" src="https://www.google.com/s2/favicons?domain=loop.genairadar.co&sz=20" height="20" width="20"/>'
-              if 'medium.com' in u or 'designsystemscollective.com' in u or 'loop.genairadar.co' in u or 'stories.mrvt.io' in u or 'loop.genairadar.co' in u:
+              if 'medium.com' in u or 'designsystemscollective.com' in u or 'loop.genairadar.co' in u or 'stories.mrvt.io' in u:
                   return 'Medium', '<img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/>'
               elif 'substack.com' in u:
                   return 'Substack', '<img alt="Substack" src="https://www.google.com/s2/favicons?domain=substack.com&sz=20" height="20" width="20"/>'
@@ -311,24 +307,21 @@ jobs:
                   e = fetch_feed_entries(loop_url)
                   if e:
                       entries.extend(e)
-              # Loop.genairadar.co
-              for loop_url in ("https://loop.genairadar.co/feed",):
-                  e = fetch_feed_entries(loop_url)
-                  if e:
-                      entries.extend(e)
 
-              # dedupe by link key, keep newest date
+              # dedupe by normalized key, prefer newest date
               dedup = {}
               for it in entries:
-                  k = it.get('link')
-                  if not k: 
-                      continue
+                  # Normalize key: title lower + link without query params
+                  title_key = it.get('title', '').lower().strip()
+                  link = it.get('link', '')
+                  base_link = link.split('?')[0]  # remove query params
+                  k = (title_key, base_link)
                   d = it.get('date') or datetime.now(timezone.utc)
                   if k not in dedup or d > dedup[k]['date']:
                       dedup[k] = it
-
-              # sort newest first
-              return sorted(dedup.values(), key=lambda x: x['date'], reverse=True)
+              
+              # extract values and sort newest first
+              sorted_entries = sorted(dedup.values(), key=lambda x: x['date'], reverse=True)
 
           def read_readme(path='README.md'):
               with open(path, 'r', encoding='utf-8') as f:
