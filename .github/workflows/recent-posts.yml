@@ -52,7 +52,8 @@ jobs:
           SUBSTACK_PUBLICATION = os.getenv("SUBSTACK_PUBLICATION", "genairadar").strip()
           SUBSTACK_BASE = f"https://{SUBSTACK_PUBLICATION}.substack.com"
           SUBSTACK_FEED = f"{SUBSTACK_BASE}/feed"
-          STORIES_BASE = "loop.genairadar.co"
+          STORIES_BASE = "stories.mrvt.io"
+              LOOP_BASE = "loop.genairadar.co"
           FETCH_PROXY_URL = (os.getenv("FETCH_PROXY_URL") or "").strip()
 
           # markers (configurable via env)
@@ -303,7 +304,7 @@ jobs:
                       break
 
               # Loop.genairadar.co
-              for loop_url in ("https://loop.genairadar.co/feed",):
+              for loop_url in (f"https://{LOOP_BASE}/feed",):
                   e = fetch_feed_entries(loop_url)
                   if e:
                       entries.extend(e)
