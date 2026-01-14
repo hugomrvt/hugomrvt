@@ -53,7 +53,7 @@ jobs:
           SUBSTACK_BASE = f"https://{SUBSTACK_PUBLICATION}.substack.com"
           SUBSTACK_FEED = f"{SUBSTACK_BASE}/feed"
           STORIES_BASE = "stories.mrvt.io"
-              LOOP_BASE = "loop.genairadar.co"
+          LOOP_BASE = "loop.genairadar.co"
           FETCH_PROXY_URL = (os.getenv("FETCH_PROXY_URL") or "").strip()
 
           # markers (configurable via env)
