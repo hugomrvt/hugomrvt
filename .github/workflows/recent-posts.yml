@@ -52,7 +52,7 @@ jobs:
           SUBSTACK_PUBLICATION = os.getenv("SUBSTACK_PUBLICATION", "genairadar").strip()
           SUBSTACK_BASE = f"https://{SUBSTACK_PUBLICATION}.substack.com"
           SUBSTACK_FEED = f"{SUBSTACK_BASE}/feed"
-          STORIES_BASE = "stories.mrvt.io"
+          STORIES_BASE = "loop.genairadar.co"
           FETCH_PROXY_URL = (os.getenv("FETCH_PROXY_URL") or "").strip()
 
           # markers (configurable via env)
@@ -117,7 +117,7 @@ jobs:
           # ----------------------------
           def detect_platform_logo(url):
               u = url.lower()
-              if 'medium.com' in u or 'designsystemscollective.com' in u or 'loop.genairadar.co' in u or 'stories.mrvt.io' in u:
+              if 'medium.com' in u or 'designsystemscollective.com' in u or 'loop.genairadar.co' in u or 'loop.genairadar.co' in u:
                   return 'Medium', '<img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/>'
               elif 'substack.com' in u:
                   return 'Substack', '<img alt="Substack" src="https://www.google.com/s2/favicons?domain=substack.com&sz=20" height="20" width="20"/>'
