@@ -54,6 +54,7 @@ jobs:
           SUBSTACK_FEED = f"{SUBSTACK_BASE}/feed"
           STORIES_BASE = "stories.mrvt.io"
           LOOP_BASE = "loop.genairadar.co"
+              INSIGHTS_BASE = "insights.genairadar.co"
           FETCH_PROXY_URL = (os.getenv("FETCH_PROXY_URL") or "").strip()
 
           # markers (configurable via env)
@@ -308,6 +309,11 @@ jobs:
                   e = fetch_feed_entries(loop_url)
                   if e:
                       entries.extend(e)
+                              # Insights.genairadar.co
+        for insights_url in (f"https://{INSIGHTS_BASE}/feed",):
+            e = fetch_feed_entries(insights_url)
+            if e:
+                entries.extend(e)
 
               # dedupe by normalized key, prefer newest date
               dedup = {}
@@ -352,7 +358,7 @@ jobs:
 
           def main():
               entries = gather_entries()
-              latest = entries[:10]
+              latest = entries[:5]
 
               # format table
               lines = ['|  | Title | Date |', '|----------|-------|------|']
