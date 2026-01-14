@@ -305,7 +305,7 @@ jobs:
                       break
 
               # Loop.genairadar.co
-              for loop_url in (f"https://{LOOP_BASE}/feed",):
+              for loop_url in (f"https://{LOOP_BASE}/feed", f"https://{INSIGHTS_BASE}/feed"):
                   e = fetch_feed_entries(loop_url)
                   if e:
                       entries.extend(e)
