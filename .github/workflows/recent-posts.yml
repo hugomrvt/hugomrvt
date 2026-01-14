@@ -309,12 +309,6 @@ jobs:
                   e = fetch_feed_entries(loop_url)
                   if e:
                       entries.extend(e)
-                              # Insights.genairadar.co
-        for insights_url in (f"https://{INSIGHTS_BASE}/feed",):
-            e = fetch_feed_entries(insights_url)
-            if e:
-                entries.extend(e)
-
               # dedupe by normalized key, prefer newest date
               dedup = {}
               for it in entries:
