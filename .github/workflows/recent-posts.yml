@@ -317,8 +317,8 @@ jobs:
                   link = it.get('link', '')
                   base_link = link.split('?')[0]  # remove query params
               k = base_link  # dedupe by URL only to allow same titles from different sources 
-                            d = it.get('date') or datetime.now(timezone.utc)
-                  if k not in dedup or d > dedup[k]['date']:
+              d = it.get('date') or datetime.now(timezone.utc) 
+                            if k not in dedup or d > dedup[k]['date']:
                       dedup[k] = it
               
               # extract values and sort newest first
