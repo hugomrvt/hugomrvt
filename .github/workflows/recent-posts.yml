@@ -16,7 +16,7 @@ jobs:
       START_MARKER: '<!-- LATEST_ARTICLES_START -->'
       END_MARKER:   '<!-- LATEST_ARTICLES_END -->'
       # OPTIONAL: set to "1" once to force a refresh even if no new links are detected
-      # FORCE_README_REFRESH: "1"
+      FORCE_README_REFRESH: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
