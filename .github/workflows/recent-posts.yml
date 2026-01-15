@@ -316,7 +316,7 @@ jobs:
                   entries.extend(e)
               else:
                   print(f"No entries from {loop_url}")
-        # dedupe by normalized key, prefer newest date
+          # dedupe by normalized key, prefer newest date
               dedup = {}
               for it in entries:
                   # Normalize key: title lower + link without query params
