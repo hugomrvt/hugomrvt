@@ -16,7 +16,7 @@ jobs:
       START_MARKER: '<!-- LATEST_ARTICLES_START -->'
       END_MARKER:   '<!-- LATEST_ARTICLES_END -->'
       # OPTIONAL: set to "1" once to force a refresh even if no new links are detected
-      FORCE_README_REFRESH: "1"
+      # FORCE_README_REFRESH: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,9 +52,9 @@ jobs:
           SUBSTACK_PUBLICATION = os.getenv("SUBSTACK_PUBLICATION", "genairadar").strip()
           SUBSTACK_BASE = f"https://{SUBSTACK_PUBLICATION}.substack.com"
           SUBSTACK_FEED = f"{SUBSTACK_BASE}/feed"
-          STORIES_BASE = "stories.mrvt.io"
-          LOOP_BASE = "loop.genairadar.co"
-          INSIGHTS_BASE = "insights.genairadar.co"
+          MEDIUM_USERNAME = "hugomrvt"
+          MEDIUM_FEED = f"https://medium.com/feed/@{MEDIUM_USERNAME}"
+
           FETCH_PROXY_URL = (os.getenv("FETCH_PROXY_URL") or "").strip()
 
           # markers (configurable via env)
@@ -297,18 +297,19 @@ jobs:
               if not entries:
                   entries.extend(fetch_substack_recent_by_html(SUBSTACK_BASE, limit=10))
 
-              # Stories/Medium-like (try feed then rss)
-              for feed_url in (f"https://{STORIES_BASE}/feed", f"https://{STORIES_BASE}/rss"):
-                  e = fetch_feed_entries(feed_url)
-                  if e:
-                      entries.extend(e)
-                      break
+              # Medium (@hugomrvt)
+              medium_entries = fetch_feed_entries(MEDIUM_FEED, limit=10)
+              if medium_entries:
+                  print(f"Fetched {len(medium_entries)} entries from Medium")
+                  entries.extend(medium_entries)
+              else:
+                  print("Warning: No entries from Medium")
 
-              # Loop.genairadar.co
-              for loop_url in (f"https://{LOOP_BASE}/feed", f"https://{INSIGHTS_BASE}/feed"):
-                  e = fetch_feed_entries(loop_url)
-                  if e:
-                      entries.extend(e)
+
+
+
+
+
               # dedupe by normalized key, prefer newest date
               dedup = {}
               for it in entries:
@@ -316,11 +317,11 @@ jobs:
                   title_key = it.get('title', '').lower().strip()
                   link = it.get('link', '')
                   base_link = link.split('?')[0]  # remove query params
-              k = base_link  # dedupe by URL only to allow same titles from different sources 
-              d = it.get('date') or datetime.now(timezone.utc) 
-              if k not in dedup or d > dedup[k]['date']: 
-                              dedup[k] = it
-              
+                  k = (title_key, base_link)
+                  d = it.get('date') or datetime.now(timezone.utc)
+                  if k not in dedup or d > dedup[k]['date']:
+                      dedup[k] = it
+
               # extract values and sort newest first
               sorted_entries = sorted(dedup.values(), key=lambda x: x['date'], reverse=True)
               return sorted_entries
@@ -376,4 +377,3 @@ jobs:
 
           if __name__ == '__main__':
               main()
-          EOF
