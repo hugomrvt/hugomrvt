@@ -304,12 +304,19 @@ jobs:
                       entries.extend(e)
                       break
 
-              # Loop.genairadar.co
-              for loop_url in (f"https://{LOOP_BASE}/feed", f"https://{INSIGHTS_BASE}/feed"):
-                  e = fetch_feed_entries(loop_url)
-                  if e:
-                      entries.extend(e)
-              # dedupe by normalized key, prefer newest date
+          # Loop.genairadar.co and Insights feeds
+          print(f"Fetching Loop feeds...")
+          for loop_url in (f"https://{LOOP_BASE}/feed", f"https://{INSIGHTS_BASE}/feed"):
+              print(f"Trying feed: {loop_url}")
+              e = fetch_feed_entries(loop_url)
+              if e:
+                  print(f"Found {len(e)} entries from {loop_url}")
+                  for entry in e[:3]:  # Log first 3 entries
+                      print(f"  - {entry['title'][:50]}... ({entry['date']})")
+                  entries.extend(e)
+              else:
+                  print(f"No entries from {loop_url}")
+                            # dedupe by normalized key, prefer newest date
               dedup = {}
               for it in entries:
                   # Normalize key: title lower + link without query params
@@ -353,6 +360,10 @@ jobs:
           def main():
               entries = gather_entries()
               latest = entries[:5]
+                        print(f"Total entries after dedup: {len(entries)}")
+          print("Top 5 articles to display:")
+          for i, it in enumerate(latest):
+              print(f"  {i+1}. [{it['date']}] {it['title'][:60]}... - {it['link'][:50]}...")
 
               # format table
               lines = ['|  | Title | Date |', '|----------|-------|------|']
