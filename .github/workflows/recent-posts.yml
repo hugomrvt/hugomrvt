@@ -10,8 +10,7 @@ jobs:
   update-posts:
     runs-on: ubuntu-latest
     env:
-      SUBSTACK_PUBLICATION: genairadar                # <- change if needed
-      FETCH_PROXY_URL: ${{ secrets.FETCH_PROXY_URL }} # <- optional Cloudflare/Vercel proxy URL
+      FETCH_PROXY_URL: ${{ secrets.FETCH_PROXY_URL }} # <- optional proxy URL for blocked requests
       # change these two if your README uses different markers
       START_MARKER: '<!-- LATEST_ARTICLES_START -->'
       END_MARKER:   '<!-- LATEST_ARTICLES_END -->'
@@ -49,9 +48,11 @@ jobs:
           # ----------------------------
           # config
           # ----------------------------
-          SUBSTACK_PUBLICATION = os.getenv("SUBSTACK_PUBLICATION", "genairadar").strip()
-          SUBSTACK_BASE = f"https://{SUBSTACK_PUBLICATION}.substack.com"
+          # Substack with custom domain (insights.genairadar.co)
+          SUBSTACK_BASE = "https://insights.genairadar.co"
           SUBSTACK_FEED = f"{SUBSTACK_BASE}/feed"
+
+          # Medium
           MEDIUM_USERNAME = "hugomrvt"
           MEDIUM_FEED = f"https://medium.com/feed/@{MEDIUM_USERNAME}"
 
@@ -184,10 +185,10 @@ jobs:
           # ----------------------------
           # plan A: Substack JSON archive
           # ----------------------------
-          def fetch_substack_archive_api(publication, limit=10):
-              api = f"https://{publication}.substack.com/api/v1/archive"
+          def fetch_substack_archive_api(base_url, limit=10):
+              api = f"{base_url}/api/v1/archive"
               params = {"sort": "new", "offset": 0, "limit": limit}
-              r = get_with_retry(api, JSON_HEADERS, params=params, accept="application/json", referer=SUBSTACK_BASE + "/archive")
+              r = get_with_retry(api, JSON_HEADERS, params=params, accept="application/json", referer=base_url + "/archive")
               if r is None:
                   print("Archive API not available")
                   return []
@@ -204,7 +205,7 @@ jobs:
                           continue
                       url = (item.get("canonical_url")
                              or item.get("url")
-                             or (f"https://{publication}.substack.com/p/{item.get('slug')}" if item.get("slug") else None))
+                             or (f"{base_url}/p/{item.get('slug')}" if item.get("slug") else None))
                       if not url:
                           continue
                       title = item.get("title") or item.get("post_title") or item.get("name") or "No title"
@@ -285,25 +286,34 @@ jobs:
 
           def gather_entries():
               entries = []
+              print(f"=== Starting article fetch ===")
+              print(f"Substack URL: {SUBSTACK_BASE}")
+              print(f"Medium feed: {MEDIUM_FEED}")
 
               # Substack via JSON API first (fast and reliable)
-              entries.extend(fetch_substack_archive_api(SUBSTACK_PUBLICATION, limit=10))
+              substack_api_entries = fetch_substack_archive_api(SUBSTACK_BASE, limit=10)
+              print(f"Substack API: {len(substack_api_entries)} entries")
+              entries.extend(substack_api_entries)
 
               # if needed, additionally pull the RSS feed for redundancy
               if SUBSTACK_FEED:
-                  entries.extend(fetch_feed_entries(SUBSTACK_FEED, limit=10))
+                  substack_feed_entries = fetch_feed_entries(SUBSTACK_FEED, limit=10)
+                  print(f"Substack RSS: {len(substack_feed_entries)} entries")
+                  entries.extend(substack_feed_entries)
 
               # last resort: parse HTML archive pages
               if not entries:
-                  entries.extend(fetch_substack_recent_by_html(SUBSTACK_BASE, limit=10))
+                  html_entries = fetch_substack_recent_by_html(SUBSTACK_BASE, limit=10)
+                  print(f"Substack HTML fallback: {len(html_entries)} entries")
+                  entries.extend(html_entries)
 
               # Medium (@hugomrvt)
               medium_entries = fetch_feed_entries(MEDIUM_FEED, limit=10)
+              print(f"Medium: {len(medium_entries)} entries")
               if medium_entries:
-                  print(f"Fetched {len(medium_entries)} entries from Medium")
                   entries.extend(medium_entries)
               else:
-                  print("Warning: No entries from Medium")
+                  print("Warning: No entries from Medium - check for 403 errors")
 
 
 
@@ -354,6 +364,10 @@ jobs:
           def main():
               entries = gather_entries()
               latest = entries[:5]
+
+              print(f"\n=== Final selection: {len(latest)} articles ===")
+              for i, it in enumerate(latest, 1):
+                  print(f"{i}. [{it['date'].strftime('%Y-%m-%d')}] {it['title'][:50]}...")
 
               # format table
               lines = ['|  | Title | Date |', '|----------|-------|------|']
