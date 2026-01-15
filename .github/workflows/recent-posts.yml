@@ -360,11 +360,6 @@ jobs:
           def main():
               entries = gather_entries()
               latest = entries[:5]
-                        print(f"Total entries after dedup: {len(entries)}")
-          print("Top 5 articles to display:")
-          for i, it in enumerate(latest):
-              print(f"  {i+1}. [{it['date']}] {it['title'][:60]}... - {it['link'][:50]}...")
-
               # format table
               lines = ['|  | Title | Date |', '|----------|-------|------|']
               for it in latest:
