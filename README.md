@@ -19,11 +19,6 @@
 <!-- LATEST_ARTICLES_START -->
 |  | Title | Date |
 |----------|-------|------|
-| <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [AI as a new territory for brand expression, beyond technology](https://loop.genairadar.co/ai-as-a-new-territory-for-brand-expression-beyond-technology-07403706a9b6?source=rss-1d7eddbc4946------2) | 14/01/2026 |
-| <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [When AI devours its own children: The existential crisis of Tailwind CSS](https://loop.genairadar.co/when-ai-devours-its-own-children-the-existential-crisis-of-tailwind-css-eb0d5498e82f?source=rss-1d7eddbc4946------2) | 11/01/2026 |
-| <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [The Super-App inflection point: How OpenAI is redesigning the digital experience](https://loop.genairadar.co/the-super-app-inflection-point-how-openai-is-redesigning-the-digital-experience-a97495bfd866?source=rss-1d7eddbc4946------2) | 09/10/2025 |
-| <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [The adoption of design systems: beyond code — a matter of documentation, tools, and business…](https://www.designsystemscollective.com/the-adoption-of-design-systems-beyond-code-a-matter-of-documentation-tools-and-business-48dcbd0420f4?source=rss-1d7eddbc4946------2) | 27/07/2025 |
-| <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [The future of design roles, takeaways into the World Economic Forum — Future of jobs report 2025](https://hugomrvt.medium.com/the-future-of-design-roles-takeaways-into-the-wef-future-of-jobs-report-2025-af1b2f07716c?source=rss-1d7eddbc4946------2) | 13/01/2025 |
 <!-- LATEST_ARTICLES_END -->
 
 ## Tech stack
