@@ -26,7 +26,7 @@
 | <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [The future of design roles, takeaways into the World Economic Forum — Future of jobs report 2025](https://hugomrvt.medium.com/the-future-of-design-roles-takeaways-into-the-wef-future-of-jobs-report-2025-af1b2f07716c?source=rss-1d7eddbc4946------2) | 13/01/2025 |
 <!-- LATEST_ARTICLES_END -->
 
-## Tech stack
+## Stack
 ![TypeScript](https://img.shields.io/badge/-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white) ![React](https://img.shields.io/badge/-React-61DAFB?style=flat-square&logo=react&logoColor=black) ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black) ![HTML5](https://img.shields.io/badge/-HTML5-E34F26?style=flat-square&logo=html5&logoColor=white) ![CSS3](https://img.shields.io/badge/-CSS3-1572B6?style=flat-square&logo=css3&logoColor=white) ![Figma](https://img.shields.io/badge/-Figma-F24E1E?style=flat-square&logo=figma&logoColor=white)
 
 ## ✦ Connect with me
