@@ -10,12 +10,9 @@ jobs:
   update-posts:
     runs-on: ubuntu-latest
     env:
-      FETCH_PROXY_URL: ${{ secrets.FETCH_PROXY_URL }} # <- optional proxy URL for blocked requests
       # change these two if your README uses different markers
       START_MARKER: '<!-- LATEST_ARTICLES_START -->'
       END_MARKER:   '<!-- LATEST_ARTICLES_END -->'
-      # OPTIONAL: set to "1" once to force a refresh even if no new links are detected
-      # FORCE_README_REFRESH: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,7 +20,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -37,49 +33,43 @@ jobs:
           import requests
           import re
           import os
-          import sys
           import json
           import time
           import calendar
           from datetime import datetime, timezone
           from dateutil import parser as date_parser
           from bs4 import BeautifulSoup
-          from urllib.parse import urljoin, urlencode
 
           # ----------------------------
           # config
           # ----------------------------
-          # Substack with custom domain (insights.genairadar.co)
-          SUBSTACK_BASE = "https://insights.genairadar.co"
-          SUBSTACK_FEED = f"{SUBSTACK_BASE}/feed"
-
-          # Medium
+          # Medium (@hugomrvt) — primary source
           MEDIUM_USERNAME = "hugomrvt"
-          MEDIUM_FEED = f"https://medium.com/feed/@{MEDIUM_USERNAME}"
+          MEDIUM_FEED_DIRECT = f"https://medium.com/feed/@{MEDIUM_USERNAME}"
 
-          FETCH_PROXY_URL = (os.getenv("FETCH_PROXY_URL") or "").strip()
+          # RSS proxy fallbacks for Medium (bypasses 403 from GitHub Actions IPs)
+          RSS_PROXY_TEMPLATES = [
+              "https://api.rss2json.com/v1/api.json?rss_url={url}",
+              "https://feed2json.org/convert?url={url}",
+          ]
 
           # markers (configurable via env)
           START_MARKER = os.getenv("START_MARKER", "<!-- LATEST_ARTICLES_START -->")
           END_MARKER   = os.getenv("END_MARKER",   "<!-- LATEST_ARTICLES_END -->")
 
-          # cache path moved into .utils
-          CACHE_DIR = ".utils/cache"
-          os.makedirs(CACHE_DIR, exist_ok=True)
-          CACHE_JSON = os.path.join(CACHE_DIR, "recent.json")
-          CACHE_README = os.path.join(CACHE_DIR, "readme.md")
-
-          # headers
+          # browser-like headers to avoid 403
           BROWSER_HEADERS = {
               "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-                             " AppleWebKit/537.36 (KHTML, like Gecko)"
-                             " Chrome/124.0.0.0 Safari/537.36",
-              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                            " AppleWebKit/537.36 (KHTML, like Gecko)"
+                            " Chrome/124.0.0.0 Safari/537.36",
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+              "Accept-Language": "en-US,en;q=0.9",
+              "Cache-Control": "no-cache",
           }
-          JSON_HEADERS = {
+          FEED_HEADERS = {
               **BROWSER_HEADERS,
-              "Accept": "application/json, text/plain, */*",
-              "Referer": SUBSTACK_BASE + "/archive",
+              "Accept": "application/rss+xml, application/xml;q=0.9, */*;q=0.8",
+              "Referer": "https://medium.com/",
           }
 
           # ----------------------------
@@ -91,7 +81,6 @@ jobs:
               return dt
 
           def to_utc_from_struct(st):
-              # struct_time -> aware datetime UTC
               if not st: return None
               try:
                   ts = calendar.timegm(st)
@@ -116,262 +105,98 @@ jobs:
                           pass
               return datetime.now(timezone.utc)
 
-          # ----------------------------
-          # platform icon
-          # ----------------------------
           def detect_platform_logo(url):
               u = url.lower()
-              if 'medium.com' in u or 'designsystemscollective.com' in u or 'loop.genairadar.co' in u or 'loop.genairadar.co' in u:
+              if 'medium.com' in u or 'loop.genairadar.co' in u or 'designsystemscollective.com' in u:
                   return 'Medium', '<img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/>'
-              elif 'substack.com' in u:
+              elif 'substack.com' in u or 'genairadar.co' in u:
                   return 'Substack', '<img alt="Substack" src="https://www.google.com/s2/favicons?domain=substack.com&sz=20" height="20" width="20"/>'
               else:
-                  return 'Blog', '📝'
+                  return 'Blog', '\U0001f4dd'
 
           # ----------------------------
-          # proxy-aware HTTP
+          # fetch Medium feed directly
           # ----------------------------
-          def via_proxy(url, accept=None, referer=None, timeout=30):
-              if not FETCH_PROXY_URL:
-                  return None
+          def fetch_medium_direct(limit=10):
+              print(f"Trying Medium direct: {MEDIUM_FEED_DIRECT}")
               try:
-                  params = {"url": url}
-                  if accept: params["accept"] = accept
-                  if referer: params["referer"] = referer
-                  proxy_url = FETCH_PROXY_URL
-                  if "?" not in proxy_url:
-                      proxy_url = proxy_url.rstrip("/") + "?" + urlencode(params)
-                      params = None
-                  r = requests.get(proxy_url, headers={"User-Agent": BROWSER_HEADERS["User-Agent"]},
-                                   params=params, timeout=timeout)
+                  r = requests.get(MEDIUM_FEED_DIRECT, headers=FEED_HEADERS, timeout=20)
+                  print(f"  Status: {r.status_code}")
                   if r.status_code == 200:
-                      print(f"Fetched via proxy: {url}")
-                      return r
-                  print(f"Proxy returned {r.status_code} for {url}")
-                  return None
-              except Exception as e:
-                  print(f"Proxy error for {url}: {e}")
-                  return None
+                      fp = feedparser.parse(r.content)
+                      entries = []
+                      for e in fp.entries[:limit]:
+                          title = getattr(e, 'title', None) or "No title"
+                          link  = getattr(e, 'link',  None)
+                          if not link: continue
+                          dt = parse_date_flexible(e)
+                          entries.append({"title": title, "link": link, "date": dt})
+                      print(f"  Got {len(entries)} entries")
+                      return entries
+              except Exception as ex:
+                  print(f"  Direct fetch error: {ex}")
+              return []
 
-          def get_with_retry(url, headers, params=None, max_retries=3, timeout=20, accept=None, referer=None):
-              for attempt in range(max_retries + 1):
+          # ----------------------------
+          # fetch Medium via RSS-to-JSON proxy (bypasses 403)
+          # ----------------------------
+          def fetch_medium_via_proxy(limit=10):
+              import urllib.parse
+              for template in RSS_PROXY_TEMPLATES:
+                  url = template.format(url=urllib.parse.quote(MEDIUM_FEED_DIRECT, safe=''))
+                  print(f"Trying RSS proxy: {url[:80]}...")
                   try:
-                      r = requests.get(url, headers=headers, params=params, timeout=timeout)
-                  except Exception as e:
-                      print(f"Request error {url}: {e}")
-                      r = None
-                  if r and r.status_code == 200:
-                      return r
-                  if r and r.status_code in (403, 429):
-                      if r.status_code == 403:
-                          print(f"Access forbidden for {url}")
-                          pr = via_proxy(url, accept=accept or headers.get("Accept", "*/*"),
-                                         referer=referer or "https://www.google.com/")
-                          if pr:
-                              return pr
-                      else:  # 429
-                          wait = 2 ** attempt
-                          print(f"Received 429 from {url}, retrying after {wait}s...")
-                          time.sleep(wait)
-                  else:
-                      if r is not None and r.status_code not in (403, 429):
-                          if attempt >= max_retries:
-                              raise RuntimeError(f"HTTP {r.status_code} for {url}")
-                      else:
-                          if attempt >= max_retries:
-                              return None
-              return via_proxy(url, accept=accept or headers.get("Accept", "*/*"),
-                               referer=referer or "https://www.google.com/")
-
-          # ----------------------------
-          # plan A: Substack JSON archive
-          # ----------------------------
-          def fetch_substack_archive_api(base_url, limit=10):
-              api = f"{base_url}/api/v1/archive"
-              params = {"sort": "new", "offset": 0, "limit": limit}
-              r = get_with_retry(api, JSON_HEADERS, params=params, accept="application/json", referer=base_url + "/archive")
-              if r is None:
-                  print("Archive API not available")
-                  return []
-              try:
-                  data = r.json()
-              except Exception as e:
-                  print(f"JSON parse error on archive API: {e}")
-                  return []
-              entries = []
-              for item in data:
-                  try:
-                      t = (item.get("type") or "").lower()
-                      if t and t not in ("post", "newsletter", "article", "publication"):
+                      r = requests.get(url, headers=BROWSER_HEADERS, timeout=20)
+                      print(f"  Status: {r.status_code}")
+                      if r.status_code != 200:
                           continue
-                      url = (item.get("canonical_url")
-                             or item.get("url")
-                             or (f"{base_url}/p/{item.get('slug')}" if item.get("slug") else None))
-                      if not url:
-                          continue
-                      title = item.get("title") or item.get("post_title") or item.get("name") or "No title"
-                      date_str = (item.get("post_date") or item.get("published_at")
-                                  or item.get("created_at") or item.get("release_date"))
-                      try:
-                          dt = ensure_aware(date_parser.parse(date_str))
-                      except Exception:
-                          dt = datetime.now(timezone.utc)
-                      entries.append({
-                          "title": title,
-                          "link": url,
-                          "date": dt,
-                      })
-                  except Exception as e:
-                      print(f"Error parsing archive item: {e}")
-                      continue
-              return entries
-
-          # ----------------------------
-          # plan B: Substack RSS
-          # ----------------------------
-          def fetch_feed_entries(feed_url, limit=10):
-              headers = {**BROWSER_HEADERS, "Accept": "application/rss+xml, application/xml;q=0.9, */*;q=0.8"}
-              r = get_with_retry(feed_url, headers, accept=headers["Accept"], referer=SUBSTACK_BASE)
-              if r is None:
-                  print(f"Feed unavailable: {feed_url}")
-                  return []
-              fp = feedparser.parse(r.content)
-              out = []
-              for e in fp.entries[:limit]:
-                  try:
-                      title = getattr(e, 'title', None) or "No title"
-                      link = getattr(e, 'link', None) or None
-                      if not link:
-                          continue
-                      dt = parse_date_flexible(e)
-                      out.append({
-                          "title": title,
-                          "link": link,
-                          "date": dt,
-                      })
-                  except Exception as ex:
-                      print(f"Error parsing feed entry: {ex}")
-                      continue
-              return out
-
-          # ----------------------------
-          # plan C: parse pages HTML directly
-          # ----------------------------
-          def fetch_substack_recent_by_html(base_url, limit=10):
-              # last resort; try reading /archive, /latest etc.
-              urls = [
-                  base_url + "/archive",
-                  base_url + "/",
-              ]
-              all_entries = []
-              for u in urls:
-                  r = get_with_retry(u, BROWSER_HEADERS, accept=BROWSER_HEADERS["Accept"], referer=base_url)
-                  if not r: continue
-                  soup = BeautifulSoup(r.text, 'html.parser')
-                  for a in soup.select('a[href]'):
-                      href = a['href']
-                      text = a.get_text(strip=True)
-                      if not text:
-                          continue
-                      # very naive filter for substack posts
-                      if '/p/' in href or '/post/' in href or '/newsletter/' in href:
-                          link = href if href.startswith('http') else urljoin(base_url, href)
-                          all_entries.append({
-                              'title': text,
-                              'link': link,
-                              'date': datetime.now(timezone.utc)
-                          })
-                  if all_entries:
-                      break
-              return all_entries[:limit]
-
-          # ----------------------------
-          # plan D: Medium via rss2json (bypasses Medium's GitHub Actions IP block)
-          # ----------------------------
-          def fetch_medium_via_rss2json(feed_url, limit=10):
-              rss2json_url = f"https://api.rss2json.com/v1/api.json?rss_url={feed_url}&count={limit}"
-              try:
-                  r = requests.get(rss2json_url, timeout=20)
-                  if r.status_code != 200:
-                      print(f"rss2json returned {r.status_code}")
-                      return []
-                  data = r.json()
-                  if data.get('status') != 'ok':
-                      print(f"rss2json error: {data.get('message', 'unknown')}")
-                      return []
-                  entries = []
-                  for item in data.get('items', [])[:limit]:
-                      try:
-                          title = item.get('title') or 'No title'
-                          link = item.get('link') or item.get('guid') or ''
-                          if not link:
-                              continue
-                          pub_date = item.get('pubDate', '')
+                      data = r.json()
+                      # rss2json format
+                      items = data.get('items') or data.get('entries') or []
+                      entries = []
+                      for item in items[:limit]:
+                          title = item.get('title') or "No title"
+                          link  = item.get('link') or item.get('url') or item.get('guid')
+                          if not link: continue
+                          date_str = item.get('pubDate') or item.get('published') or item.get('date') or ""
                           try:
-                              dt = ensure_aware(date_parser.parse(pub_date))
+                              dt = ensure_aware(date_parser.parse(date_str)) if date_str else datetime.now(timezone.utc)
                           except Exception:
                               dt = datetime.now(timezone.utc)
-                          entries.append({'title': title, 'link': link, 'date': dt})
-                      except Exception as ex:
-                          print(f"rss2json item parse error: {ex}")
-                          continue
-                  return entries
-              except Exception as e:
-                  print(f"rss2json request error: {e}")
-                  return []
+                          entries.append({"title": title, "link": link, "date": dt})
+                      if entries:
+                          print(f"  Got {len(entries)} entries via proxy")
+                          return entries
+                  except Exception as ex:
+                      print(f"  Proxy error: {ex}")
+              return []
+
+          # ----------------------------
+          # main gather
+          # ----------------------------
           def gather_entries():
+              print("=== Starting article fetch ===")
               entries = []
-              print(f"=== Starting article fetch ===")
-              print(f"Substack URL: {SUBSTACK_BASE}")
-              print(f"Medium feed: {MEDIUM_FEED}")
 
-              # Substack via JSON API first (fast and reliable)
-              substack_api_entries = fetch_substack_archive_api(SUBSTACK_BASE, limit=10)
-              print(f"Substack API: {len(substack_api_entries)} entries")
-              entries.extend(substack_api_entries)
+              # 1) Direct Medium fetch
+              entries = fetch_medium_direct(limit=10)
 
-              # if needed, additionally pull the RSS feed for redundancy
-              if SUBSTACK_FEED:
-                  substack_feed_entries = fetch_feed_entries(SUBSTACK_FEED, limit=10)
-                  print(f"Substack RSS: {len(substack_feed_entries)} entries")
-                  entries.extend(substack_feed_entries)
-
-              # last resort: parse HTML archive pages
+              # 2) If blocked (empty), try via RSS proxy
               if not entries:
-                  html_entries = fetch_substack_recent_by_html(SUBSTACK_BASE, limit=10)
-                  print(f"Substack HTML fallback: {len(html_entries)} entries")
-                  entries.extend(html_entries)
+                  print("Direct fetch returned 0 — trying proxies...")
+                  entries = fetch_medium_via_proxy(limit=10)
 
-              # Medium (@hugomrvt) - direct feed with rss2json fallback (Medium blocks GH Actions IPs)
-          medium_entries = fetch_feed_entries(MEDIUM_FEED, limit=10)
-          print(f"Medium direct: {len(medium_entries)} entries")
-          if not medium_entries:
-              print("Medium direct feed returned 0 (likely 403 from datacenter IP), trying rss2json fallback...")
-              medium_entries = fetch_medium_via_rss2json(MEDIUM_FEED, limit=10)
-              print(f"Medium rss2json fallback: {len(medium_entries)} entries")
-          if medium_entries:
-              entries.extend(medium_entries)
-          else:
-              print("Warning: No entries from Medium after all fallbacks")
-
-
-
-
-
-
-              # dedupe by normalized key, prefer newest date
+              # dedupe by (title, base_link), prefer newest date
               dedup = {}
               for it in entries:
-                  # Normalize key: title lower + link without query params
                   title_key = it.get('title', '').lower().strip()
-                  link = it.get('link', '')
-                  base_link = link.split('?')[0]  # remove query params
+                  link      = it.get('link', '')
+                  base_link = link.split('?')[0]
                   k = (title_key, base_link)
                   d = it.get('date') or datetime.now(timezone.utc)
                   if k not in dedup or d > dedup[k]['date']:
                       dedup[k] = it
 
-              # extract values and sort newest first
               sorted_entries = sorted(dedup.values(), key=lambda x: x['date'], reverse=True)
               return sorted_entries
 
@@ -390,40 +215,35 @@ jobs:
 
           def replace_between_markers(content, start_marker, end_marker, new_block):
               start_idx = content.find(start_marker)
-              end_idx = content.find(end_marker)
+              end_idx   = content.find(end_marker)
               if start_idx == -1 or end_idx == -1 or end_idx < start_idx:
                   return content
               start_idx += len(start_marker)
               return content[:start_idx] + "\n" + new_block + "\n" + content[end_idx:]
 
           def commit_needed(old, new):
-              # avoid needless commits
               return old.strip() != new.strip()
 
           def main():
               entries = gather_entries()
-              latest = entries[:5]
-            # GUARD: never overwrite README with empty content
-        if not latest:
-            print('No articles fetched from any source. Keeping README unchanged.')
-            sys.exit(0)
-                print(f"\n=== Final selection: {len(latest)} articles ===")
+              latest  = entries[:5]
+              print(f"\n=== Final selection: {len(latest)} articles ===")
               for i, it in enumerate(latest, 1):
-                  print(f"{i}. [{it['date'].strftime('%Y-%m-%d')}] {it['title'][:50]}...")
+                  print(f"{i}. [{it['date'].strftime('%Y-%m-%d')}] {it['title'][:60]}")
+
+              # --- GUARD: never overwrite README with an empty table ---
+              if not latest:
+                  print("WARNING: 0 articles fetched — README left unchanged to avoid data loss.")
+                  return
 
               # format table
-              lines = ['|  | Title | Date |', '|----------|-------|------|']
+              lines = ['| | Title | Date |', '|----------|-------|------|']
               for it in latest:
                   lines.append(format_table_row(it['title'], it['link'], it['date']))
               block = "\n".join(lines)
 
-              # read and patch README
               readme = read_readme()
               new_readme = replace_between_markers(readme, START_MARKER, END_MARKER, block)
-              # optional forced refresh
-              if os.getenv('FORCE_README_REFRESH') == '1':
-                  print('Forced refresh of README requested')
-                  new_readme = new_readme + "\n"
 
               if commit_needed(readme, new_readme):
                   write_readme(new_readme)
