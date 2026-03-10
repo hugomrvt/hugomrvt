@@ -47,6 +47,10 @@ jobs:
           MEDIUM_USERNAME = "hugomrvt"
           MEDIUM_FEED_DIRECT = f"https://medium.com/feed/@{MEDIUM_USERNAME}"
 
+          # Substack (insights.genairadar.co) — activate when articles are published
+          # SUBSTACK_BASE = "https://insights.genairadar.co"
+          # SUBSTACK_FEED = f"{SUBSTACK_BASE}/feed"
+
           # RSS proxy fallbacks for Medium (bypasses 403 from GitHub Actions IPs)
           RSS_PROXY_TEMPLATES = [
               "https://api.rss2json.com/v1/api.json?rss_url={url}",
@@ -165,10 +169,62 @@ jobs:
                               dt = datetime.now(timezone.utc)
                           entries.append({"title": title, "link": link, "date": dt})
                       if entries:
-                          print(f"  Got {len(entries)} entries via proxy")
+                          print(f"  Got {len(entries)} via proxy")
                           return entries
                   except Exception as ex:
                       print(f"  Proxy error: {ex}")
+              return []
+
+          # ----------------------------
+          # fetch Substack via JSON Archive API
+          # ----------------------------
+          def fetch_substack_archive_api(base_url, limit=10):
+              url = f"{base_url}/api/v1/posts?limit={limit}&offset=0"
+              print(f"Trying Substack API: {url}")
+              try:
+                  r = requests.get(url, headers=BROWSER_HEADERS, timeout=20)
+                  print(f"  Status: {r.status_code}")
+                  if r.status_code == 200:
+                      data = r.json()
+                      entries = []
+                      for post in data[:limit]:
+                          title = post.get('title') or "No title"
+                          slug  = post.get('slug')
+                          if not slug: continue
+                          link = f"{base_url}/p/{slug}"
+                          date_str = post.get('post_date') or post.get('updated_at') or ""
+                          try:
+                              dt = ensure_aware(date_parser.parse(date_str)) if date_str else datetime.now(timezone.utc)
+                          except Exception:
+                              dt = datetime.now(timezone.utc)
+                          entries.append({"title": title, "link": link, "date": dt})
+                      print(f"  Got {len(entries)} entries")
+                      return entries
+              except Exception as ex:
+                  print(f"  Substack API error: {ex}")
+              return []
+
+          # ----------------------------
+          # fetch generic RSS/Atom feed
+          # ----------------------------
+          def fetch_feed_entries(feed_url, limit=10):
+              print(f"Trying RSS feed: {feed_url}")
+              try:
+                  r = requests.get(feed_url, headers=FEED_HEADERS, timeout=20)
+                  print(f"  Status: {r.status_code}")
+                  if r.status_code == 200:
+                      fp = feedparser.parse(r.content)
+                      entries = []
+                      for e in fp.entries[:limit]:
+                          title = getattr(e, 'title', None) or "No title"
+                          link  = getattr(e, 'link',  None)
+                          if not link: continue
+                          dt = parse_date_flexible(e)
+                          entries.append({"title": title, "link": link, "date": dt})
+                      print(f"  Got {len(entries)} entries")
+                      return entries
+              except Exception as ex:
+                  print(f"  RSS feed error: {ex}")
               return []
 
           # ----------------------------
@@ -178,13 +234,28 @@ jobs:
               print("=== Starting article fetch ===")
               entries = []
 
+              # --- Substack (insights.genairadar.co) ---
+              # Uncomment the block below when articles are published on insights.genairadar.co
+              #
+              # substack_entries = fetch_substack_archive_api(SUBSTACK_BASE, limit=10)
+              # print(f"Substack API: {len(substack_entries)} entries")
+              # entries.extend(substack_entries)
+              #
+              # # Substack RSS fallback
+              # if not substack_entries:
+              #     substack_rss = fetch_feed_entries(SUBSTACK_FEED, limit=10)
+              #     entries.extend(substack_rss)
+
+              # --- Medium (@hugomrvt) ---
               # 1) Direct Medium fetch
-              entries = fetch_medium_direct(limit=10)
+              medium_entries = fetch_medium_direct(limit=10)
 
               # 2) If blocked (empty), try via RSS proxy
-              if not entries:
+              if not medium_entries:
                   print("Direct fetch returned 0 — trying proxies...")
-                  entries = fetch_medium_via_proxy(limit=10)
+                  medium_entries = fetch_medium_via_proxy(limit=10)
+
+              entries.extend(medium_entries)
 
               # dedupe by (title, base_link), prefer newest date
               dedup = {}
