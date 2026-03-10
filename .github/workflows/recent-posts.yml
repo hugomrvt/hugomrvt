@@ -284,6 +284,40 @@ jobs:
                       break
               return all_entries[:limit]
 
+          # ----------------------------
+          # plan D: Medium via rss2json (bypasses Medium's GitHub Actions IP block)
+          # ----------------------------
+          def fetch_medium_via_rss2json(feed_url, limit=10):
+              rss2json_url = f"https://api.rss2json.com/v1/api.json?rss_url={feed_url}&count={limit}"
+              try:
+                  r = requests.get(rss2json_url, timeout=20)
+                  if r.status_code != 200:
+                      print(f"rss2json returned {r.status_code}")
+                      return []
+                  data = r.json()
+                  if data.get('status') != 'ok':
+                      print(f"rss2json error: {data.get('message', 'unknown')}")
+                      return []
+                  entries = []
+                  for item in data.get('items', [])[:limit]:
+                      try:
+                          title = item.get('title') or 'No title'
+                          link = item.get('link') or item.get('guid') or ''
+                          if not link:
+                              continue
+                          pub_date = item.get('pubDate', '')
+                          try:
+                              dt = ensure_aware(date_parser.parse(pub_date))
+                          except Exception:
+                              dt = datetime.now(timezone.utc)
+                          entries.append({'title': title, 'link': link, 'date': dt})
+                      except Exception as ex:
+                          print(f"rss2json item parse error: {ex}")
+                          continue
+                  return entries
+              except Exception as e:
+                  print(f"rss2json request error: {e}")
+                  return []
           def gather_entries():
               entries = []
               print(f"=== Starting article fetch ===")
@@ -307,13 +341,17 @@ jobs:
                   print(f"Substack HTML fallback: {len(html_entries)} entries")
                   entries.extend(html_entries)
 
-              # Medium (@hugomrvt)
-              medium_entries = fetch_feed_entries(MEDIUM_FEED, limit=10)
-              print(f"Medium: {len(medium_entries)} entries")
-              if medium_entries:
-                  entries.extend(medium_entries)
-              else:
-                  print("Warning: No entries from Medium - check for 403 errors")
+              # Medium (@hugomrvt) - direct feed with rss2json fallback (Medium blocks GH Actions IPs)
+          medium_entries = fetch_feed_entries(MEDIUM_FEED, limit=10)
+          print(f"Medium direct: {len(medium_entries)} entries")
+          if not medium_entries:
+              print("Medium direct feed returned 0 (likely 403 from datacenter IP), trying rss2json fallback...")
+              medium_entries = fetch_medium_via_rss2json(MEDIUM_FEED, limit=10)
+              print(f"Medium rss2json fallback: {len(medium_entries)} entries")
+          if medium_entries:
+              entries.extend(medium_entries)
+          else:
+              print("Warning: No entries from Medium after all fallbacks")
 
 
 
@@ -364,6 +402,11 @@ jobs:
           def main():
               entries = gather_entries()
               latest = entries[:5]
+
+          # GUARD: never overwrite README with empty content
+          if not latest:
+              print('No articles fetched from any source. Keeping README unchanged.')
+              sys.exit(0)
 
               print(f"\n=== Final selection: {len(latest)} articles ===")
               for i, it in enumerate(latest, 1):
