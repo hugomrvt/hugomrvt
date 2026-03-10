@@ -403,10 +403,10 @@ jobs:
               entries = gather_entries()
               latest = entries[:5]
 
-          # GUARD: never overwrite README with empty content
-          if not latest:
-              print('No articles fetched from any source. Keeping README unchanged.')
-              sys.exit(0)
+                        # GUARD: never overwrite README with empty content
+            if not latest:
+                print('No articles fetched from any source. Keeping README unchanged.')
+                sys.exit(0)
 
               print(f"\n=== Final selection: {len(latest)} articles ===")
               for i, it in enumerate(latest, 1):
