@@ -434,7 +434,7 @@ jobs:
 
           if __name__ == '__main__':
               main()
-
+          EOF
       - name: Commit and push changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
