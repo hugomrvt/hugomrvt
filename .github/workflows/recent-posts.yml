@@ -407,7 +407,6 @@ jobs:
             if not latest:
                 print('No articles fetched from any source. Keeping README unchanged.')
                 sys.exit(0)
-
               print(f"\n=== Final selection: {len(latest)} articles ===")
               for i, it in enumerate(latest, 1):
                   print(f"{i}. [{it['date'].strftime('%Y-%m-%d')}] {it['title'][:50]}...")
