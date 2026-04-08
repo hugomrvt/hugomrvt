@@ -1,3 +1,6 @@
+
+![Banner](https://i.imgur.com/Z3adD3S.png)
+
 # Hugo Mourlevat
 **Chief Design Officer at [Michelin](https://github.com/michelin) & (AI) Product Builder**
 
