@@ -22,11 +22,11 @@
 <!-- LATEST_ARTICLES_START -->
 | | Title | Date |
 |----------|-------|------|
+| <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [From shadow IT to shadow engineering: When employees stop using software and start shipping it](https://loop.genairadar.co/from-shadow-it-to-shadow-engineering-when-employees-stop-using-software-and-start-shipping-it-fd8ad8aa5bee?source=rss-1d7eddbc4946------2) | 07/05/2026 |
 | <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [Build the roadmap, lose the product: capture patterns in OpenClaw’s open-source ecosystem](https://loop.genairadar.co/build-the-roadmap-lose-the-product-capture-patterns-in-openclaws-open-source-ecosystem-4eebc9590dc1?source=rss-1d7eddbc4946------2) | 12/03/2026 |
 | <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [Aligned but unfit: What happens when AI agents get real tools and no judgment](https://loop.genairadar.co/aligned-but-unfit-what-happens-when-ai-agents-get-real-tools-and-no-judgment-31f39823c472?source=rss-1d7eddbc4946------2) | 07/03/2026 |
 | <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [AI as a new territory for brand expression, beyond technology](https://loop.genairadar.co/ai-as-a-new-territory-for-brand-expression-beyond-technology-07403706a9b6?source=rss-1d7eddbc4946------2) | 14/01/2026 |
 | <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [When AI devours its own children: The existential crisis of Tailwind CSS](https://loop.genairadar.co/when-ai-devours-its-own-children-the-existential-crisis-of-tailwind-css-eb0d5498e82f?source=rss-1d7eddbc4946------2) | 11/01/2026 |
-| <img alt="Medium" src="https://www.google.com/s2/favicons?domain=medium.com&sz=20" height="20" width="20"/> Medium | [The Super-App inflection point: How OpenAI is redesigning the digital experience](https://loop.genairadar.co/the-super-app-inflection-point-how-openai-is-redesigning-the-digital-experience-a97495bfd866?source=rss-1d7eddbc4946------2) | 09/10/2025 |
 <!-- LATEST_ARTICLES_END -->
 
 ## Stack
