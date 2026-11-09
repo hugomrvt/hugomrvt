@@ -1,11 +1,11 @@
 {
   "title": "HUGO.CLI",
-  "alt": "HUGO.CLI terminal running neofetch. Hugo Mourlevat, Chief Design Officer at Michelin Group, 12+ years in design, 6 talks, 5 articles.",
+  "alt": "HUGO.CLI terminal running /welcome. Hugo Mourlevat, Chief Design Officer at Michelin Group, 12+ years in design, 6 talks, 5 articles.",
   "link": "https://hugo.mourlev.at",
 
   "topbar": {
     "version": "v6.3",
-    "model": "hugomrvt-opus",
+    "model": "mrvt-fable",
     "site": "hugo.mourlev.at"
   },
 
@@ -13,7 +13,7 @@
     { "at": 0,    "line": [["dim", "HUGO.BIOS v6.3.0 · Power-On Self Test"]] },
     { "at": 202,  "line": [["dim", "Copyright (c) 2014-2026 Hugo Mourlevat"]] },
     { "at": 405,  "line": [] },
-    { "at": 711,  "check": ["CPU", "hugomrvt-opus"] },
+    { "at": 711,  "check": ["CPU", "mrvt-fable"] },
     { "at": 1054, "check": ["Memory", "12 years of experience loaded"] },
     { "at": 1405, "check": ["Disk", "170 countries mounted"] },
     { "at": 1752, "check": ["GPU", "Design System 25+ brands"] },
@@ -27,7 +27,7 @@
   ],
   "boot_ends_at": 4737,
 
-  "command": "neofetch",
+  "command": "/welcome",
   "placeholder": "Ask hugo anything...",
 
   "neofetch": {
@@ -35,7 +35,7 @@
     "host": "github",
     "rows": [
       ["OS", "HUGO.CLI v6.3"],
-      ["Model", "hugomrvt-opus"],
+      ["Model", "mrvt-fable"],
       ["Role", "Chief Design Officer"],
       ["Org", "Michelin Group"],
       ["Uptime", "12+ yrs", "in design"],
