@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import html
 import json
+import math
 from pathlib import Path
 
 from fontTools.pens.recordingPen import DecomposingRecordingPen
@@ -47,7 +48,7 @@ FONT = HERE / "fonts" / "JetBrainsMono-Variable.ttf"
 THEMES = ("dark", "light")
 
 # --- Geometry (px) ----------------------------------------------------------
-W = 688               # the README column of a GitHub profile, so the card shows 1:1
+W = 846               # the README column of a GitHub profile, so the card shows 1:1
 PAD = 24
 RADIUS = 10
 
@@ -75,8 +76,9 @@ LABEL_BASELINE = 11.4              # a 9.6px label inside its 15.84px line
 REPLY_TOP = USER_TOP + USER_H + 6.8
 ROWS_TOP = REPLY_TOP + 8 + 15.84 + 3.84
 
-LOGO_COL = 1                       # one cell in, as in the TUI
-INFO_GAP = 7                       # cells between the logo and the info column
+LOGO_SCALE = 1.5                   # the logo against the text grid: about as tall as the info list
+INFO_GAP = 48                      # px between the logo and the info column, at least
+CAP = 0.73 * SIZE                  # cap height of JetBrains Mono
 CHECK_VALUE_COL = 8                # boot lines: where the value starts
 CHECK_STATUS_COL = 44              # boot lines: where [OK] starts
 
@@ -214,6 +216,13 @@ class Glyphs:
                 found[-1].append((x * scale, -y * scale))
         return found
 
+    def ink(self, text: str) -> tuple[float, float]:
+        """How far a run of text reaches above and below its baseline, in px (y down)."""
+        ys = [y for char in text for contour in (self.contours(char) or []) for _, y in contour]
+        if not ys:
+            return -1.02 * SIZE, 0.3 * SIZE
+        return min(ys), max(ys)
+
 
 def winding(contour: list[tuple[float, float]], px: float, py: float) -> int:
     """Winding number of a polygon around a point that is not on its edges."""
@@ -329,16 +338,17 @@ def line(glyphs: Glyphs, x: float, y: float, segments: list[tuple]) -> str:
     return "".join(out)
 
 
-def logo_line(glyphs: Glyphs, x: float, y: float, text: str) -> str:
+def logo_line(glyphs: Glyphs, x: float, y: float, text: str, scale: float = 1.0) -> str:
     """One row of the block-letter logo, as a single outline when it can be."""
     shapes = []
     for index, char in enumerate(text):
         contours = glyphs.contours(char)
         if contours is None:
-            return run(glyphs, x, y, text, "a")
+            return run(glyphs, x, y, text, "a", size=SIZE * scale)
         if contours:
             shapes.append([[(px + index * CELL, py) for px, py in contour] for contour in contours])
-    return f'<path class="a" transform="translate({n(x)} {n(y)})" d="{outline(shapes)}"/>'
+    transform = f"translate({n(x)} {n(y)})" + (f" scale({n(scale, 4)})" if scale != 1 else "")
+    return f'<path class="a" transform="{transform}" d="{outline(shapes)}"/>'
 
 
 def chip_width(text: str, pad: float) -> int:
@@ -418,12 +428,22 @@ def compose(session: dict, glyphs: Glyphs) -> tuple[str, float, str]:
         if note:
             row.append(("m", " " + note[0]))
         info.append(row)
-    info_w = max(sum(len(seg[1]) for seg in row) for row in info if row)
-    rows = max(len(info), len(logo))
-    logo_row = (rows - len(logo)) // 2
-    info_x = PAD + (LOGO_COL + max(map(len, logo)) + INFO_GAP) * CELL
 
-    input_rule = round(ROWS_TOP + rows * PITCH + 16) + 0.5
+    # The reply: logo on the left edge, info column running to the right edge.
+    # The logo is centred on the list by its ink, not by its line boxes.
+    inner = W - 2 * PAD
+    logo_w = max(map(len, logo)) * CELL * LOGO_SCALE
+    logo_step = PITCH * LOGO_SCALE
+    ink_top, _ = glyphs.ink(logo[0])
+    _, ink_bottom = glyphs.ink(logo[-1])
+    logo_ink = ((len(logo) - 1) * PITCH + ink_bottom - ink_top) * LOGO_SCALE
+    area_h = max(len(info) * PITCH, logo_ink)
+    info_top = ROWS_TOP + (area_h - len(info) * PITCH) / 2
+    info_mid = info_top + BASELINE + ((len(info) - 1) * PITCH - CAP) / 2
+    logo_y = info_mid - logo_ink / 2 - ink_top * LOGO_SCALE          # first baseline of the logo
+    info_x = PAD + math.ceil((logo_w + INFO_GAP) / CELL) * CELL      # stays on the text grid
+
+    input_rule = round(ROWS_TOP + area_h + 16) + 0.5
     input_baseline = input_rule + 0.5 + 12 + 18.56
     input_x = round(PAD + INPUT * ADVANCE + 8)
     height = round(input_rule + 0.5 + 12 + 25.6 + 12)
@@ -462,7 +482,6 @@ def compose(session: dict, glyphs: Glyphs) -> tuple[str, float, str]:
         out.append(group(parts, during(t_boot[index], t_clear)))
 
     # The command, once sent: a user message.
-    inner = W - 2 * PAD
     block = (
         f'<path class="rs" d="M{PAD} {USER_TOP}h{inner - 4}a4 4 0 0 1 4 4v{USER_H - 8}a4 4 0 0 1-4 4h-{inner - 4}z"/>'
         f'<rect class="ed" x="{PAD}" y="{USER_TOP}" width="2" height="{USER_H}"/>'
@@ -485,18 +504,21 @@ def compose(session: dict, glyphs: Glyphs) -> tuple[str, float, str]:
     )
     out.append(group(label, at(t_reply)))
 
-    for index in range(rows):
-        top = ROWS_TOP + index * PITCH
-        y = top + BASELINE
-        parts = ""
-        if 0 <= index - logo_row < len(logo):
-            parts += logo_line(glyphs, PAD + LOGO_COL * CELL, y, logo[index - logo_row])
-        if index < len(info):
-            if info[index] is None:
-                parts += f'<rect class="m" x="{n(info_x)}" y="{n(top + 11)}" width="{n(info_w * CELL)}" height="1"/>'
-            else:
-                parts += line(glyphs, info_x, y, info[index])
-        out.append(group(parts, at(t_reply + index * timing["row"])))
+    # Both columns print top to bottom at the same pace, one text row per step.
+    def printed(baseline: float) -> tuple[str, str]:
+        step = round(max(baseline - info_top - BASELINE, 0) / PITCH)
+        return at(t_reply + step * timing["row"])
+
+    for index, text in enumerate(logo):
+        y = logo_y + index * logo_step
+        out.append(group(logo_line(glyphs, PAD, y, text, LOGO_SCALE), printed(y)))
+    for index, row in enumerate(info):
+        top = info_top + index * PITCH
+        if row is None:
+            parts = f'<rect class="m" x="{n(info_x)}" y="{n(top + 11)}" width="{n(W - PAD - info_x)}" height="1"/>'
+        else:
+            parts = line(glyphs, info_x, top + BASELINE, row)
+        out.append(group(parts, printed(top + BASELINE)))
 
     # Prompt line. The placeholder gives way while the command is typed.
     out.append(f'<rect class="hl" x="{PAD}" y="{n(input_rule - 0.5)}" width="{inner}" height="1"/>')
