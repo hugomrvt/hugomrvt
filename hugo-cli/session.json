@@ -1,0 +1,65 @@
+{
+  "title": "HUGO.CLI",
+  "alt": "HUGO.CLI terminal running neofetch. Hugo Mourlevat, Chief Design Officer at Michelin Group, 12+ years in design, 6 talks, 5 articles.",
+  "link": "https://hugo.mourlev.at",
+
+  "topbar": {
+    "version": "v6.3",
+    "model": "hugomrvt-opus",
+    "site": "hugo.mourlev.at"
+  },
+
+  "boot": [
+    { "at": 0,    "line": [["dim", "HUGO.BIOS v6.3.0 · Power-On Self Test"]] },
+    { "at": 202,  "line": [["dim", "Copyright (c) 2014-2026 Hugo Mourlevat"]] },
+    { "at": 405,  "line": [] },
+    { "at": 711,  "check": ["CPU", "hugomrvt-opus"] },
+    { "at": 1054, "check": ["Memory", "12 years of experience loaded"] },
+    { "at": 1405, "check": ["Disk", "170 countries mounted"] },
+    { "at": 1752, "check": ["GPU", "Design System 25+ brands"] },
+    { "at": 2114, "check": ["Net", "6 talks · 5 articles · GenAI Radar"] },
+    { "at": 2410, "line": [] },
+    { "at": 2700, "line": [["dim", "Initializing design kernel..."]] },
+    { "at": 3136, "line": [["dim", "Loading portfolio modules..."]] },
+    { "at": 3515, "line": [["ok", "All systems operational."]] },
+    { "at": 3728, "line": [] },
+    { "at": 3937, "line": [["accent", "Launching HUGO.CLI..."]] }
+  ],
+  "boot_ends_at": 4737,
+
+  "command": "neofetch",
+  "placeholder": "Ask hugo anything...",
+
+  "neofetch": {
+    "user": "hugo",
+    "host": "github",
+    "rows": [
+      ["OS", "HUGO.CLI v6.3"],
+      ["Model", "hugomrvt-opus"],
+      ["Role", "Chief Design Officer"],
+      ["Org", "Michelin Group"],
+      ["Uptime", "12+ yrs", "in design"],
+      ["Shell", "hugo.cli/github"],
+      ["Talks", "6", "engagements"],
+      ["Articles", "5", "published"]
+    ]
+  },
+
+  "logo": [
+    "██╗  ██╗██╗   ██╗ ██████╗  ██████╗ ",
+    "██║  ██║██║   ██║██╔════╝ ██╔═══██╗",
+    "███████║██║   ██║██║  ███╗██║   ██║",
+    "██╔══██║██║   ██║██║   ██║██║   ██║",
+    "██║  ██║╚██████╔╝╚██████╔╝╚██████╔╝",
+    "╚═╝  ╚═╝ ╚═════╝  ╚═════╝  ╚═════╝ "
+  ],
+
+  "timing": {
+    "boot_speed": 0.6,
+    "pause_before_typing": 350,
+    "key": 70,
+    "pause_before_enter": 220,
+    "thinking": 400,
+    "row": 45
+  }
+}

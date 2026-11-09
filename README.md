@@ -1,5 +1,10 @@
 
-![Banner](https://i.imgur.com/4vC355T.png)
+<a href="https://hugo.mourlev.at">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="hugo-cli/card-dark.svg">
+    <img alt="HUGO.CLI terminal running neofetch. Hugo Mourlevat, Chief Design Officer at Michelin Group, 12+ years in design, 6 talks, 5 articles." src="hugo-cli/card-light.svg" width="100%">
+  </picture>
+</a>
 
 # Hugo Mourlevat
 **Chief Design Officer at [Michelin](https://github.com/michelin) & (AI) Product Builder**
