@@ -1,0 +1,68 @@
+{
+  "$description": "HUGO.CLI colours, light theme. The TUI has no light theme. This one mirrors the dark structure on a white canvas, with the accent darkened to keep 4.5:1 on text.",
+  "color": {
+    "$type": "color",
+    "canvas": {
+      "$description": "Card background. Same value as the GitHub page behind it, so only the frame draws the window.",
+      "$value": { "colorSpace": "srgb", "components": [1, 1, 1], "hex": "#ffffff" }
+    },
+    "line": {
+      "frame": {
+        "$description": "Outline of the card.",
+        "$value": { "colorSpace": "srgb", "components": [0.1216, 0.1373, 0.1569], "alpha": 0.14, "hex": "#1f2328" }
+      },
+      "chip": {
+        "$description": "Outline of the version and site chips.",
+        "$value": { "colorSpace": "srgb", "components": [0.1216, 0.1373, 0.1569], "alpha": 0.12, "hex": "#1f2328" }
+      },
+      "hairline": {
+        "$description": "Rules under the top bar and above the prompt.",
+        "$value": { "colorSpace": "srgb", "components": [0.1216, 0.1373, 0.1569], "alpha": 0.08, "hex": "#1f2328" }
+      },
+      "edge": {
+        "$description": "Left edge of a user message.",
+        "$value": { "colorSpace": "srgb", "components": [0.1216, 0.1373, 0.1569], "alpha": 0.18, "hex": "#1f2328" }
+      }
+    },
+    "text": {
+      "strong": {
+        "$value": { "colorSpace": "srgb", "components": [0.1216, 0.1373, 0.1569], "hex": "#1f2328" }
+      },
+      "default": {
+        "$value": { "colorSpace": "srgb", "components": [0.1216, 0.1373, 0.1569], "alpha": 0.8, "hex": "#1f2328" }
+      },
+      "dim": {
+        "$value": { "colorSpace": "srgb", "components": [0.1216, 0.1373, 0.1569], "alpha": 0.55, "hex": "#1f2328" }
+      },
+      "faint": {
+        "$description": "Small uppercase labels.",
+        "$value": { "colorSpace": "srgb", "components": [0.1216, 0.1373, 0.1569], "alpha": 0.45, "hex": "#1f2328" }
+      },
+      "placeholder": {
+        "$value": { "colorSpace": "srgb", "components": [0.1216, 0.1373, 0.1569], "alpha": 0.22, "hex": "#1f2328" }
+      }
+    },
+    "accent": {
+      "default": {
+        "$value": { "colorSpace": "srgb", "components": [0.7216, 0.3529, 0.2118], "hex": "#b85a36" }
+      },
+      "subtle": {
+        "$description": "Fill of the model badge.",
+        "$value": { "colorSpace": "srgb", "components": [0.7216, 0.3529, 0.2118], "alpha": 0.07, "hex": "#b85a36" }
+      },
+      "border": {
+        "$description": "Outline of the model badge.",
+        "$value": { "colorSpace": "srgb", "components": [0.7216, 0.3529, 0.2118], "alpha": 0.28, "hex": "#b85a36" }
+      }
+    },
+    "success": {
+      "$value": { "colorSpace": "srgb", "components": [0.102, 0.498, 0.2157], "hex": "#1a7f37" }
+    },
+    "surface": {
+      "raised": {
+        "$description": "Fill of a user message and of the site chip.",
+        "$value": { "colorSpace": "srgb", "components": [0.1216, 0.1373, 0.1569], "alpha": 0.04, "hex": "#1f2328" }
+      }
+    }
+  }
+}
